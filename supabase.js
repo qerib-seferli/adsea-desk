@@ -1,10 +1,10 @@
-const SUPABASE_URL = "https://YOUR_SUPABASE_PROJECT_URL.supabase.co"; 
-const SUPABASE_ANON_KEY = "YOUR_SUPABASE_ANON_KEY";
+// ADSEA Desk - Supabase Canlı Əlaqə Modulu
+const SUPABASE_URL = "https://hdpdykooqirguwnojovb.supabase.co"; 
+const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhkcGR5a29vcWlyZ3V3bm9qb3ZiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI0MDkzNzMsImV4cCI6MjA5Nzk4NTM3M30.G_cqtqwd4d8bCYrNSeMgyQAYkogahUx9uKrRTrxOJoA";
 
 const supabase = window.supabase ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY) : null;
 
 const ŞəbəkəMühərriki = {
-    // Cari istifadəçinin proqramda aktiv olub-olmadığını yoxlayan Realtime Presence metodu
     cihazıOnlineEt: async (istifadəçiId, cihazKodu, rayon) => {
         if (!supabase) return;
         const kanal = supabase.channel('online-əməkdaşlar', {
@@ -19,7 +19,7 @@ const ŞəbəkəMühərriki = {
             if (status === 'SUBSCRIBED') {
                 await kanal.track({
                     cihazKodu: cihazKodu,
-                    rayon: rayon,
+                    region: rayon,
                     onlineAt: new Date().toISOString()
                 });
             }
@@ -27,12 +27,10 @@ const ŞəbəkəMühərriki = {
     }
 };
 
-// Real Verilənlər Bazası Əməliyyat Modulu
 const BazaMühərriki = {
     qeydiyyatYarat: async (email, password, profilData) => {
-        if (!supabase) return { error: { message: "Supabase bağlantısı yoxdur." } };
+        if (!supabase) return { error: { message: "Supabase bağlantısı qurula bilmədi." } };
         
-        // 1. Supabase Auth-da istifadəçi yaradırıq
         const { data: authData, error: authError } = await supabase.auth.signUp({
             email: email,
             password: password
@@ -40,7 +38,6 @@ const BazaMühərriki = {
 
         if (authError) return { error: authError };
 
-        // 2. İstifadəçinin ştat idarə profil məlumatlarını 'profillər' cədvəlinə yazırıq
         const { error: profilError } = await supabase.from('profillər').insert([{
             id: authData.user.id,
             ad: profilData.ad,
@@ -50,7 +47,7 @@ const BazaMühərriki = {
             idarə_adı: profilData.idarə_adı,
             bölmə: profilData.bölmə,
             vəzifə: profilData.vəzifə,
-            is_approved: false // Sistem admini təsdiqləməlidir!
+            is_approved: false 
         }]);
 
         if (profilError) return { error: profilError };
@@ -58,7 +55,7 @@ const BazaMühərriki = {
     },
 
     girişYoxla: async (email, password) => {
-        if (!supabase) return { error: { message: "Supabase bağlantısı yoxdur." } };
+        if (!supabase) return { error: { message: "Supabase bağlantısı qurula bilmədi." } };
 
         const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
             email: email,
@@ -67,14 +64,13 @@ const BazaMühərriki = {
 
         if (authError) return { error: authError };
 
-        // İstifadəçinin admin tərəfindən təsdiqlənib-təsdiqlənmədiyini yoxlayırıq
         const { data: profil, error: profilError } = await supabase
             .from('profillər')
             .select('*')
             .eq('id', authData.user.id)
             .single();
 
-        if (profilError || !profil) return { error: { message: "Profil məlumatı tapılmadı." } };
+        if (profilError || !profil) return { error: { message: "Profil verilənləri mövcud deyil." } };
         
         return { data: { user: authData.user, profil: profil } };
     }
