@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="az">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ADSEA Desk - Sistem Administratoru Paneli</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="admin.css">
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen font-sans overflow-hidden">
+
+    <div class="flex h-screen">
+        <aside class="w-64 bg-slate-900/50 border-r border-slate-900 p-5 flex flex-col justify-between">
+            <div>
+                <div class="flex items-center space-x-2.5 mb-6 pb-4 border-b border-slate-800">
+                    <div class="w-9 h-9 rounded-lg bg-gradient-to-tr from-cyan-600 to-blue-600 flex items-center justify-center text-white font-bold text-sm shadow-md shadow-cyan-500/10">A</div>
+                    <div>
+                        <h1 class="text-xs font-bold text-white tracking-wide">ADSEA ADMİN</h1>
+                        <p class="text-[10px] text-slate-500 font-semibold uppercase">Təhlükəsizlik Mərkəzi</p>
+                    </div>
+                </div>
+
+                <nav class="space-y-1">
+                    <button class="w-full bg-cyan-500/10 border border-cyan-500/20 text-cyan-400 rounded-lg p-2.5 text-xs font-semibold flex items-center space-x-2.5">
+                        <i class="fa-solid fa-users-gear"></i> <span>Təsdiq Gözləyənlər</span>
+                    </button>
+                </nav>
+            </div>
+            
+            <div class="text-[10px] text-slate-600 text-center border-t border-slate-800 pt-3">
+                <p>Admin İdentifikasiyası v1.0</p>
+            </div>
+        </aside>
+
+        <main class="flex-1 bg-slate-950 p-6 flex flex-col overflow-y-auto">
+            <div class="flex justify-between items-center mb-6">
+                <div>
+                    <h2 class="text-base font-bold text-white">Hesab Təsdiqləmə Sorğuları</h2>
+                    <p class="text-xs text-slate-400 mt-0.5">Sistemə daxil olmaq üçün icazə gözləyən dövlət əməkdaşlarının siyahısı</p>
+                </div>
+                <button onclick="window.location.href='index'" class="bg-slate-900 hover:bg-slate-800 text-slate-300 py-1.5 px-3 rounded-lg text-xs font-medium border border-slate-800 transition">
+                    <i class="fa-solid fa-arrow-left mr-1"></i> Əsas Panelə Keç
+                </button>
+            </div>
+
+            <div class="glass-panel rounded-xl overflow-hidden border border-slate-900">
+                <table class="w-full text-left border-collapse">
+                    <thead>
+                        <tr class="bg-slate-900/60 border-b border-slate-900 text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                            <th class="p-4">Əməkdaş (Ad, Soyad, Ata adı)</th>
+                            <th class="p-4">Region / İdarə</th>
+                            <th class="p-4">Struktur / Vəzifə</th>
+                            <th class="p-4">E-poçt</th>
+                            <th class="p-4 text-right">Əməliyyat</th>
+                        </tr>
+                    </thead>
+                    <tbody id="admin-pending-table" class="text-xs text-slate-300 divide-y divide-slate-900">
+                        </tbody>
+                </table>
+                <div id="admin-empty-state" class="hidden text-center py-12 text-slate-600 text-xs">
+                    <i class="fa-solid fa-circle-check text-2xl text-emerald-500/20 mb-2.5 block"></i>
+                    Təsdiq gözləyən yeni sorğu yoxdur.
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <div id="alert-container" class="fixed top-5 right-5 z-50 space-y-3 pointer-events-none"></div>
+
+    <script src="supabase.js"></script>
+    <script src="admin.js"></script>
+    <script>
+        if (window.location.pathname.endsWith('.html')) {
+            window.history.replaceState(null, '', window.location.pathname.replace(/\.html$/, ''));
+        }
+        document.addEventListener('DOMContentLoaded', () => {
+            if(typeof AdminMühərriki !== 'undefined') AdminMühərriki.sorğularıYüklə();
+        });
+    </script>
+</body>
+</html>
