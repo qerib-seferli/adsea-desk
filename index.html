@@ -4,34 +4,42 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ADSEA Desk - Azərbaycan Dövlət Su Ehtiyatları Agentliyi</title>
-    <!-- Tailwind CSS və İkonlar -->
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <!-- Supabase JS Library (CDN vasitəsilə tam inteqrasiya) -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <!-- CSS Fayılları -->
     <link rel="stylesheet" href="style.css">
     <link rel="stylesheet" href="admin.css">
 </head>
 <body class="bg-slate-950 text-slate-100 min-h-screen font-sans selection:bg-cyan-500 selection:text-slate-950 overflow-hidden">
 
-    <!-- Dinamik Səhifə Yükləmə Konteyneri -->
     <div id="app" class="w-full h-screen"></div>
 
-    <!-- Xüsusi Modallar və Bildirişlər üçün Qlobal Konteyner (GitHub mesajlarını əngəlləmək üçün) -->
+    <div id="remote-window" class="fixed inset-0 bg-black z-30 hidden flex flex-col">
+        <div class="bg-slate-900/90 border-b border-slate-800 p-3 flex justify-between items-center px-5">
+            <div class="flex items-center space-x-3">
+                <i class="fa-solid fa-headset text-cyan-400 text-xs"></i>
+                <span id="remote-screen-title" class="text-xs font-bold text-slate-200">Uzaq İş Masası Seansı</span>
+            </div>
+            <button onclick="document.getElementById('remote-window').classList.add('hidden')" class="bg-red-600/10 hover:bg-red-600 text-red-400 hover:text-white transition rounded-lg px-3 py-1 text-xs font-semibold border border-red-500/20">
+                Bağlantını Kəs
+            </button>
+        </div>
+        <div class="flex-1 relative overflow-hidden flex items-center justify-center">
+            <video id="remote-screen-video" autoplay playsinline class="w-full h-full object-contain cursor-none"></video>
+        </div>
+    </div>
+
     <div id="alert-container" class="fixed top-5 right-5 z-50 space-y-3 pointer-events-none"></div>
     <div id="modal-container" class="fixed inset-0 z-40 hidden backdrop-blur-sm bg-slate-950/80 flex items-center justify-center p-4"></div>
 
-    <!-- JavaScript Modulları -->
     <script src="supabase.js"></script>
+    <script src="webrtc.js"></script>
     <script src="user.js"></script>
     <script src="admin.js"></script>
     <script src="app.js"></script>
     <script>
-        // URL-dən .html sonluqlarını gizlətmək və təmiz domain formatını saxlamaq üçün History API API-si
         if (window.location.pathname.endsWith('.html')) {
-            const cleanUrl = window.location.pathname.replace(/\.html$/, '');
-            window.history.replaceState(null, '', cleanUrl + window.location.search);
+            window.history.replaceState(null, '', window.location.pathname.replace(/\.html$/, ''));
         }
     </script>
 </body>
