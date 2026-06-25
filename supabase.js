@@ -38,16 +38,18 @@ const BazaMühərriki = {
 
         if (authError) return { error: authError };
 
-        const { error: profilError } = await supabase.from('profillər').insert([{
+        // ASCII sütun adları ilə təhlükəsiz insert
+        const { error: profilError } = await supabase.from('profiles').insert([{
             id: authData.user.id,
-            ad: profilData.ad,
-            soyad: profilData.soyad,
-            ata_adı: profilData.ata_adı,
-            rayon: profilData.rayon,
-            idarə_adı: profilData.idarə_adı,
-            bölmə: profilData.bölmə,
-            vəzifə: profilData.vəzifə,
-            is_approved: false 
+            first_name: profilData.ad,
+            last_name: profilData.soyad,
+            patronymic: profilData.ata_adı,
+            region: profilData.rayon,
+            office_name: profilData.idarə_adı,
+            department: profilData.bölmə,
+            role_title: profilData.vəzifə,
+            is_approved: false,
+            is_admin: false
         }]);
 
         if (profilError) return { error: profilError };
@@ -65,7 +67,7 @@ const BazaMühərriki = {
         if (authError) return { error: authError };
 
         const { data: profil, error: profilError } = await supabase
-            .from('profillər')
+            .from('profiles')
             .select('*')
             .eq('id', authData.user.id)
             .single();
