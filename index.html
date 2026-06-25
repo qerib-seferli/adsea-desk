@@ -3,44 +3,193 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ADSEA Desk - Azərbaycan Dövlət Su Ehtiyatları Agentliyi</title>
+    <title>ADSEA Desk - İdarəetmə Paneli</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <link rel="stylesheet" href="style.css">
-    <link rel="stylesheet" href="admin.css">
+    <link rel="stylesheet" href="/assets/css/style.css">
+    <link rel="stylesheet" href="/assets/css/admin.css">
 </head>
-<body class="bg-slate-950 text-slate-100 min-h-screen font-sans selection:bg-cyan-500 selection:text-slate-950 overflow-hidden">
+<body class="text-slate-100 min-h-screen flex flex-col md:flex-row overflow-hidden">
 
-    <div id="app" class="w-full h-screen"></div>
-
-    <div id="remote-window" class="fixed inset-0 bg-black z-30 hidden flex flex-col">
-        <div class="bg-slate-900/90 border-b border-slate-800 p-3 flex justify-between items-center px-5">
+    <aside id="sidebar" class="w-full md:w-80 sidebar-glass flex flex-col h-1/2 md:h-screen transition-all duration-300 z-40">
+        <div class="p-4 border-b border-cyan-500/10 flex items-center justify-between">
             <div class="flex items-center space-x-3">
-                <i class="fa-solid fa-headset text-cyan-400 text-xs"></i>
-                <span id="remote-screen-title" class="text-xs font-bold text-slate-200">Uzaq İş Masası Seansı</span>
+                <img src="/assets/foto/Logo.png" alt="ADSEA Logo" class="w-9 h-9 object-contain">
+                <div>
+                    <h1 class="text-xs font-bold tracking-wider text-cyan-400 uppercase">ADSEA Desk</h1>
+                    <p class="text-[9px] text-slate-500 uppercase tracking-widest">Struktur Ağacı</p>
+                </div>
             </div>
-            <button onclick="document.getElementById('remote-window').classList.add('hidden')" class="bg-red-600/10 hover:bg-red-600 text-red-400 hover:text-white transition rounded-lg px-3 py-1 text-xs font-semibold border border-red-500/20">
-                Bağlantını Kəs
-            </button>
+            <button id="toggle-sidebar" class="md:hidden text-cyan-400 p-1"><i class="fa-solid fa-bars"></i></button>
         </div>
-        <div class="flex-1 relative overflow-hidden flex items-center justify-center">
-            <video id="remote-screen-video" autoplay playsinline class="w-full h-full object-contain cursor-none"></video>
+        
+        <div id="regional-tree" class="flex-1 overflow-y-auto p-4 space-y-2 text-xs">
+            <div class="text-slate-600 uppercase tracking-wider text-[9px] font-bold mb-2">Canlı Regional Şəbəkə</div>
+            <div class="text-slate-500 italic animate-pulse">Şəbəkə ağacı qurulur...</div>
+        </div>
+    </aside>
+
+    <main class="flex-1 flex flex-col h-1/2 md:h-screen overflow-hidden relative">
+        <header class="h-16 border-b border-cyan-500/10 px-6 flex items-center justify-between glass-panel z-10">
+            <div class="flex items-center space-x-3">
+                <div class="w-2 h-2 rounded-full status-online"></div>
+                <span id="user-header-profile" class="text-xs font-medium text-slate-300">Yüklənir...</span>
+            </div>
+            <button id="btn-logout" class="text-xs text-slate-400 hover:text-red-400 transition flex items-center space-x-1.5">
+                <i class="fa-solid fa-power-off"></i> <span class="hidden sm:inline">Çıxış</span>
+            </button>
+        </header>
+
+        <div class="flex-1 overflow-y-auto p-6 space-y-6">
+            <section>
+                <div class="flex items-center justify-between mb-4">
+                    <h3 class="text-xs font-bold tracking-wider text-slate-400 uppercase flex items-center space-x-2">
+                        <i class="fa-solid fa-clock-rotate-left text-cyan-500"></i> <span>Son Qoşulmalar (Maks 15)</span>
+                    </h3>
+                </div>
+                <div id="recent-connections-grid" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
+                    </div>
+            </section>
+        </div>
+    </main>
+
+    <div id="remote-request-modal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-md hidden items-center justify-center p-4 z-50 transition-all">
+        <div class="glass-panel max-w-md w-full rounded-2xl p-6 border-red-500/30 shadow-2xl relative overflow-hidden remote-alert-active bg-slate-900/90">
+            <div class="absolute -top-12 -left-12 w-32 h-32 bg-red-600/10 rounded-full blur-3xl"></div>
+            
+            <div class="text-center pb-4 border-b border-slate-800">
+                <div class="w-12 h-12 rounded-xl bg-gradient-to-tr from-red-600 to-amber-500 flex items-center justify-center mx-auto shadow-lg shadow-red-500/20 mb-3">
+                    <i class="fa-solid fa-display text-white text-lg animate-pulse"></i>
+                </div>
+                <h4 class="text-sm font-bold text-white tracking-wide">Uzaqdan Qoşulma Sorğusu!</h4>
+                <p class="text-[11px] text-red-400 font-medium mt-0.5">Sizin kompyuterə tam nəzarət icazəsi istənilir</p>
+            </div>
+
+            <div class="my-5 p-4 rounded-xl bg-slate-950/60 border border-slate-800 space-y-3 text-xs">
+                <div class="flex justify-between"><span class="text-slate-500">Sorğu Göndərən:</span><span id="req-sender-name" class="font-semibold text-cyan-400 text-right">--</span></div>
+                <div class="flex justify-between"><span class="text-slate-500">Regional Struktur:</span><span id="req-sender-meta" class="text-slate-300 text-right">--</span></div>
+                <div class="flex justify-between"><span class="text-slate-500">Ştat / Vəzifə:</span><span id="req-sender-role" class="text-slate-400 text-right">--</span></div>
+                <div class="flex justify-between"><span class="text-slate-500">Təhlükəsizlik Səviyyəsi:</span><span class="text-emerald-400 font-medium tracking-wide">ADSEA Daxili Şəbəkə</span></div>
+            </div>
+
+            <div class="grid grid-cols-2 gap-3 pt-2">
+                <button id="btn-reject-remote" class="w-full bg-slate-800 hover:bg-slate-700 text-slate-300 font-semibold py-2.5 px-4 rounded-xl transition text-xs">
+                    Rədd Et
+                </button>
+                <button id="btn-accept-remote" class="w-full bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-semibold py-2.5 px-4 rounded-xl transition text-xs shadow-lg shadow-emerald-500/10">
+                    İcazə Ver və Qoş
+                </button>
+            </div>
         </div>
     </div>
 
     <div id="alert-container" class="fixed top-5 right-5 z-50 space-y-3 pointer-events-none"></div>
-    <div id="modal-container" class="fixed inset-0 z-40 hidden backdrop-blur-sm bg-slate-950/80 flex items-center justify-center p-4"></div>
 
-    <script src="supabase.js"></script>
-    <script src="webrtc.js"></script>
-    <script src="user.js"></script>
-    <script src="admin.js"></script>
-    <script src="app.js"></script>
+    <script src="/assets/js/supabase.js"></script>
+    <script src="/assets/js/user.js"></script>
+    <script src="/assets/js/webrtc.js"></script>
     <script>
+        // Sessiya yoxlanışı və təmiz URL marşrutlaşdırma
+        const localUser = JSON.parse(localStorage.getItem('adsea_user'));
+        if (!localUser) { window.location.href = "/login"; }
+
         if (window.location.pathname.endsWith('.html')) {
             window.history.replaceState(null, '', window.location.pathname.replace(/\.html$/, ''));
         }
+
+        document.getElementById('user-header-profile').textContent = `${localUser.last_name} ${localUser.first_name} (${localUser.office_name})`;
+
+        // Son 15 Qoşulma (Maksimum 5 Sütun x 3 Sətir) Məntiqi
+        let sonQoşulmalar = JSON.parse(localStorage.getItem('adsea_recent')) || [];
+        function SonQoşulmalarıYenilə(yeniİdarə) {
+            sonQoşulmalar = sonQoşulmalar.filter(item => item !== yeniİdarə);
+            sonQoşulmalar.unshift(yeniİdarə);
+            if(sonQoşulmalar.length > 15) sonQoşulmalar.pop();
+            localStorage.setItem('adsea_recent', JSON.stringify(sonQoşulmalar));
+            RenderSonQoşulmalar();
+        }
+
+        function RenderSonQoşulmalar() {
+            const container = document.getElementById('recent-connections-grid');
+            container.innerHTML = sonQoşulmalar.map(item => `
+                <div class="glass-panel p-3 rounded-xl border-cyan-500/5 hover:border-cyan-500/20 transition cursor-pointer text-center group">
+                    <i class="fa-solid fa-building text-slate-500 group-hover:text-cyan-400 text-lg transition block mb-1"></i>
+                    <div class="text-[11px] font-medium text-slate-300 truncate">${item}</div>
+                </div>
+            `).join('');
+        }
+        RenderSonQoşulmalar();
+
+        // Regional Şəbəkə Ağacının Qruplaşdırılması (Rayon -> İdarə -> Əməkdaş)
+        function UI_AğacYenilə(presenceState) {
+            const treeContainer = document.getElementById('regional-tree');
+            treeContainer.innerHTML = '';
+
+            let dataByRegion = {};
+            Object.values(presenceState).forEach(userPresences => {
+                userPresences.forEach(p => {
+                    if (!dataByRegion[p.rayon]) dataByRegion[p.rayon] = {};
+                    if (!dataByRegion[p.rayon][p.idarə_adı]) dataByRegion[p.rayon][p.idarə_adı] = [];
+                    dataByRegion[p.rayon][p.idarə_adı].push(p);
+                });
+            });
+
+            Object.keys(dataByRegion).forEach(rayon => {
+                const rayonDiv = document.createElement('div');
+                rayonDiv.className = "space-y-1";
+                rayonDiv.innerHTML = `
+                    <div class="font-bold text-cyan-400 cursor-pointer flex items-center space-x-1 py-1 px-1.5 rounded hover:bg-slate-900" onclick="this.nextElementSibling.classList.toggle('hidden')">
+                        <i class="fa-solid fa-folder-open text-[10px]"></i><span>${rayon} Rayonu</span>
+                    </div>
+                    <div class="pl-3 space-y-1 hidden"></div>
+                `;
+                const idareContainer = rayonDiv.querySelectorAll('div')[1];
+
+                Object.keys(dataByRegion[rayon]).forEach(idare => {
+                    const idareDiv = document.createElement('div');
+                    idareDiv.className = "space-y-1";
+                    idareDiv.innerHTML = `
+                        <div class="font-medium text-slate-300 cursor-pointer flex items-center space-x-1 py-0.5 px-1.5 rounded hover:bg-slate-900" onclick="SonQoşulmalarıYenilə('${idare}'); this.nextElementSibling.classList.toggle('hidden')">
+                            <i class="fa-solid fa-building text-[10px] text-slate-500"></i><span>${idare}</span>
+                        </div>
+                        <div class="pl-3 space-y-0.5 hidden"></div>
+                    `;
+                    const emekdasContainer = idareDiv.querySelectorAll('div')[1];
+
+                    dataByRegion[rayon][idare].forEach(em => {
+                        const emEl = document.createElement('div');
+                        emEl.className = "text-[11px] text-slate-400 flex items-center justify-between py-0.5 px-1.5 rounded tree-node cursor-pointer";
+                        emEl.innerHTML = `
+                            <div class="flex items-center space-x-1.5">
+                                <span class="w-1.5 h-1.5 rounded-full status-online"></span>
+                                <span>${em.soyad} ${em.ad[0]}.</span>
+                            </div>
+                            <span class="text-[9px] text-slate-600 truncate max-w-[80px]">${em.vəzifə}</span>
+                        `;
+                        emEl.onclick = () => {
+                            AdminMühərriki.mesajGöstər(`${em.soyad} ${em.ad} üçün uzaqdan idarəetmə başladılır...`, "info");
+                            WebRTCMühərriki.bağlantınıBaşlat(em.id, localUser);
+                        };
+                        emekdasContainer.appendChild(emEl);
+                    });
+                    idareContainer.appendChild(idareDiv);
+                });
+                treeContainer.appendChild(rayonDiv);
+            });
+        }
+
+        // Başlanğıc əmrləri
+        ŞəbəkəMühərriki.cihazıOnlineEt(localUser.id, localUser);
+
+        document.getElementById('btn-logout').onclick = () => {
+            localStorage.removeItem('adsea_user');
+            window.location.href = "/login";
+        };
+
+        document.getElementById('toggle-sidebar').onclick = () => {
+            document.getElementById('sidebar').classList.toggle('h-12');
+        };
     </script>
 </body>
 </html>
