@@ -3,35 +3,36 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ADSEA Desk - Uzaqdan İdarəetmə Paneli</title>
-    <!-- Tailwind CSS (PRO Neon və Dark Mode stilləri üçün) -->
+    <title>ADSEA Desk - Azərbaycan Dövlət Su Ehtiyatları Agentliyi</title>
+    <!-- Tailwind CSS və İkonlar -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Lucide İkonları üçün FontAwesome / Tailwind elementləri -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <style>
-        /* Glassmorphism və Neon Effektləri */
-        .glass-panel {
-            background: rgba(17, 24, 39, 0.7);
-            backdrop-filter: blur(12px);
-            -webkit-backdrop-filter: blur(12px);
-            border: 1px solid rgba(255, 255, 255, 0.08);
-        }
-        .neon-border-cyan:focus {
-            border-color: #06b6d4;
-            box-shadow: 0 0 15px rgba(6, 182, 212, 0.4);
-        }
-        .neon-glow-blue {
-            box-shadow: 0 0 20px rgba(37, 99, 235, 0.2);
-        }
-    </style>
+    <!-- Supabase JS Library (CDN vasitəsilə tam inteqrasiya) -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <!-- CSS Fayılları -->
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="admin.css">
 </head>
-<body class="bg-slate-950 text-slate-100 min-h-screen font-sans selection:bg-cyan-500 selection:text-slate-950">
+<body class="bg-slate-950 text-slate-100 min-h-screen font-sans selection:bg-cyan-500 selection:text-slate-950 overflow-hidden">
 
-    <div id="app" class="flex h-screen overflow-hidden">
-        <!-- Bütün UI bura yüklənəcək -->
-    </div>
+    <!-- Dinamik Səhifə Yükləmə Konteyneri -->
+    <div id="app" class="w-full h-screen"></div>
 
-    <!-- Əsas Məntiq Faylı -->
+    <!-- Xüsusi Modallar və Bildirişlər üçün Qlobal Konteyner (GitHub mesajlarını əngəlləmək üçün) -->
+    <div id="alert-container" class="fixed top-5 right-5 z-50 space-y-3 pointer-events-none"></div>
+    <div id="modal-container" class="fixed inset-0 z-40 hidden backdrop-blur-sm bg-slate-950/80 flex items-center justify-center p-4"></div>
+
+    <!-- JavaScript Modulları -->
+    <script src="supabase.js"></script>
+    <script src="user.js"></script>
+    <script src="admin.js"></script>
     <script src="app.js"></script>
+    <script>
+        // URL-dən .html sonluqlarını gizlətmək və təmiz domain formatını saxlamaq üçün History API API-si
+        if (window.location.pathname.endsWith('.html')) {
+            const cleanUrl = window.location.pathname.replace(/\.html$/, '');
+            window.history.replaceState(null, '', cleanUrl + window.location.search);
+        }
+    </script>
 </body>
 </html>
