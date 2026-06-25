@@ -1,0 +1,52 @@
+/* Qlobal Neon və Şüşə Effektləri */
+.glass-panel {
+    background: rgba(15, 23, 42, 0.65);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.neon-border-cyan:focus {
+    border-color: #06b6d4;
+    box-shadow: 0 0 20px rgba(6, 182, 212, 0.35);
+}
+
+.neon-glow-blue {
+    box-shadow: 0 0 25px rgba(37, 99, 235, 0.25);
+}
+
+/* Canlı Status İşıq Animasiyaları */
+@keyframes statusPulseGreen {
+    0%, 100% { transform: scale(1); opacity: 1; box-shadow: 0 0 8px #10b981; }
+    50% { transform: scale(1.2); opacity: 0.6; box-shadow: 0 0 2px #10b981; }
+}
+
+@keyframes statusPulseRed {
+    0%, 100% { transform: scale(1); opacity: 0.8; }
+    50% { transform: scale(1.1); opacity: 0.4; }
+}
+
+.status-online {
+    background-color: #10b981;
+    animation: statusPulseGreen 2s infinite ease-in-out;
+}
+
+.status-offline {
+    background-color: #ef4444;
+    animation: statusPulseRed 3s infinite ease-in-out;
+}
+
+/* Səliqəli sürüşdürmə çubuğu (Scrollbar) */
+::-webkit-scrollbar {
+    width: 6px;
+}
+::-webkit-scrollbar-track {
+    background: rgba(15, 23, 42, 0.1);
+}
+::-webkit-scrollbar-thumb {
+    background: rgba(51, 65, 85, 0.5);
+    border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+    background: rgba(6, 182, 212, 0.5);
+}
