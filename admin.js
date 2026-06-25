@@ -44,30 +44,30 @@ const AdminMühərriki = {
         document.getElementById('btn-icaze').onclick = () => { container.classList.add('hidden'); onTəsdiq(true); };
     },
 
-    // REAL ADMİN FUNKSİYALARI: Təsdiq gözləyən istifadəçiləri çəkir
+    // admin.js daxilində müvafiq funksiyaları bu obyektlərlə əvəzləyin:
     sorğularıYüklə: async () => {
         if (!supabase) return;
         
-        const { data: profillər, error } = await supabase
-            .from('profillər')
+        const { data: profiles, error } = await supabase
+            .from('profiles')
             .eq('is_approved', false);
-
+    
         const tbody = document.getElementById('admin-pending-table');
         const emptyState = document.getElementById('admin-empty-state');
         
-        if (error || !profillər || profillər.length === 0) {
+        if (error || !profiles || profiles.length === 0) {
             tbody.innerHTML = "";
             emptyState.classList.remove('hidden');
             return;
         }
         
         emptyState.classList.add('hidden');
-        tbody.innerHTML = profillər.map(p => `
+        tbody.innerHTML = profiles.map(p => `
             <tr id="row-${p.id}" class="hover:bg-slate-900/30 transition">
-                <td class="p-4 font-semibold text-white">${p.soyad} ${p.ad} ${p.ata_adı}</td>
-                <td class="p-4 text-slate-400">${p.rayon} / ${p.idarə_adı}</td>
-                <td class="p-4 text-slate-400">${p.bölmə} / <span class="text-cyan-400 font-medium">${p.vəzifə}</span></td>
-                <td class="p-4 font-mono text-slate-500">${p.email || 'korporativ@adsea.gov.az'}</td>
+                <td class="p-4 font-semibold text-white">${p.last_name} ${p.first_name} ${p.patronymic}</td>
+                <td class="p-4 text-slate-400">${p.region} / ${p.office_name}</td>
+                <td class="p-4 text-slate-400">${p.department} / <span class="text-cyan-400 font-medium">${p.role_title}</span></td>
+                <td class="p-4 font-mono text-slate-500">Əməkdaş v1.0</td>
                 <td class="p-4 text-right space-x-2">
                     <button onclick="AdminMühərriki.hesabıTəsdiqlə('${p.id}', false)" class="bg-red-500/10 hover:bg-red-600 hover:text-white text-red-400 text-[11px] py-1 px-2.5 rounded border border-red-500/10 transition">Rədd Et</button>
                     <button onclick="AdminMühərriki.hesabıTəsdiqlə('${p.id}', true)" class="bg-emerald-500/10 hover:bg-emerald-600 hover:text-white text-emerald-400 text-[11px] py-1 px-2.5 rounded border border-emerald-500/10 transition font-semibold">Təsdiqlə ✓</button>
@@ -75,25 +75,23 @@ const AdminMühərriki = {
             </tr>
         `).join('');
     },
-
+    
     hesabıTəsdiqlə: async (userId, status) => {
         if (!supabase) return;
         
         if (status) {
-            // Əgər təsdiqlənirsə bazada statusu TRUE edirik
             const { error } = await supabase
-                .from('profillər')
+                .from('profiles')
                 .update({ is_approved: true })
                 .eq('id', userId);
-
+    
             if (!error) {
                 AdminMühərriki.mesajGöstər("Əməkdaş uğurla təsdiqləndi.", "success");
                 document.getElementById(`row-${userId}`)?.remove();
                 AdminMühərriki.sorğularıYüklə();
             }
         } else {
-            // Rədd edilirsə profili silirik
-            const { error } = await supabase.from('profillər').delete().eq('id', userId);
+            const { error } = await supabase.from('profiles').delete().eq('id', userId);
             if (!error) {
                 AdminMühərriki.mesajGöstər("Sorğu silindi və rədd edildi.", "error");
                 document.getElementById(`row-${userId}`)?.remove();
