@@ -1,0 +1,15 @@
+/* Brauzerin alert() pəncərələrini əvəz edən xüsusi bildiriş qutuları */
+.custom-toast {
+    pointer-events: auto;
+    animation: slideInRight 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes slideInRight {
+    from { transform: translateX(120%); opacity: 0; }
+    to { transform: translateX(0); opacity: 1; }
+}
+
+.admin-badge {
+    background: linear-gradient(135deg, rgba(6, 182, 212, 0.15) 0%, rgba(37, 99, 235, 0.15) 100%);
+    border: 1px solid rgba(6, 182, 212, 0.3);
+}
