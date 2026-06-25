@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="az">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ADSEA Desk - Qeydiyyat</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <link rel="stylesheet" href="/assets/css/style.css">
+    <link rel="stylesheet" href="/assets/css/admin.css">
+</head>
+<body class="text-slate-100 min-h-screen flex items-center justify-center p-4">
+
+    <div class="glass-panel max-w-lg w-full rounded-2xl p-7 border-cyan-500/10 shadow-2xl my-8">
+        <div class="text-center mb-6">
+            <div class="w-16 h-16 flex items-center justify-center mx-auto mb-2">
+                <img src="/assets/foto/Logo.png" alt="ADSEA Gerb" class="w-full h-full object-contain">
+            </div>
+            <h2 class="text-lg font-bold tracking-wide text-cyan-400">Yeni Əməkdaş Qeydiyyatı</h2>
+            <p class="text-[11px] text-slate-400 mt-0.5">Məlumatları struktur üzrə tam və doğru daxil edin</p>
+        </div>
+
+        <form id="register-form" class="space-y-4">
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <div>
+                    <label class="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1 pl-1">Adınız</label>
+                    <input type="text" id="reg-name" required placeholder="Ad" class="w-full neon-input rounded-xl py-2 px-3 text-xs text-slate-200 outline-none">
+                </div>
+                <div>
+                    <label class="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1 pl-1">Soyadınız</label>
+                    <input type="text" id="reg-surname" required placeholder="Soyad" class="w-full neon-input rounded-xl py-2 px-3 text-xs text-slate-200 outline-none">
+                </div>
+                <div>
+                    <label class="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1 pl-1">Ata Adı</label>
+                    <input type="text" id="reg-patronymic" required placeholder="Ata adı" class="w-full neon-input rounded-xl py-2 px-3 text-xs text-slate-200 outline-none">
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                    <label class="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1 pl-1">Şəhər / Rayon</label>
+                    <select id="reg-region" required class="w-full neon-input rounded-xl py-2 px-3 text-xs text-slate-300 outline-none cursor-pointer"></select>
+                </div>
+                <div>
+                    <label class="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1 pl-1">İdarənin Tam Adı</label>
+                    <input type="text" id="reg-office" required placeholder="Məs: Bərdə SMSİİ" class="w-full neon-input rounded-xl py-2 px-3 text-xs text-slate-200 outline-none">
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                    <label class="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1 pl-1">Struktur Bölmə</label>
+                    <input type="text" id="reg-structure" required placeholder="Məs: İnformasiya Texnologiyaları" class="w-full neon-input rounded-xl py-2 px-3 text-xs text-slate-200 outline-none">
+                </div>
+                <div>
+                    <label class="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1 pl-1">Vəzifəniz</label>
+                    <input type="text" id="reg-role" required placeholder="Məs: Aparıcı Mütəxəssis" class="w-full neon-input rounded-xl py-2 px-3 text-xs text-slate-200 outline-none">
+                </div>
+            </div>
+
+            <div class="border-t border-slate-900/60 my-2 pt-2"></div>
+
+            <div>
+                <label class="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1 pl-1">Korporativ E-poçt</label>
+                <input type="email" id="reg-email" required placeholder="ornek@adsea.gov.az" class="w-full neon-input rounded-xl py-2.5 px-3 text-xs text-slate-200 outline-none">
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                    <label class="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1 pl-1">Şifrə</label>
+                    <input type="password" id="reg-pass" required placeholder="••••••••" class="w-full neon-input rounded-xl py-2.5 px-3 text-xs text-slate-200 outline-none">
+                </div>
+                <div>
+                    <label class="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1 pl-1">Şifrənin Təkrarı</label>
+                    <input type="password" id="reg-pass-rep" required placeholder="••••••••" class="w-full neon-input rounded-xl py-2.5 px-3 text-xs text-slate-200 outline-none">
+                </div>
+            </div>
+
+            <button type="submit" class="w-full bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white font-semibold py-3 px-4 rounded-xl transition flex items-center justify-center space-x-1.5 text-xs shadow-lg shadow-cyan-500/10 mt-4">
+                <i class="fa-solid fa-user-plus text-[10px]"></i> <span>Təsdiq Sorğusu Göndər</span>
+            </button>
+        </form>
+
+        <div class="mt-5 border-t border-slate-900/60 pt-3 text-center">
+            <p class="text-xs text-slate-500">Artıq hesabınız var? <a href="/login" class="text-cyan-400 hover:underline font-medium">Daxil olun</a></p>
+        </div>
+    </div>
+
+    <div id="alert-container" class="fixed top-5 right-5 z-50 space-y-3 pointer-events-none"></div>
+
+    <script src="/assets/js/supabase.js"></script>
+    <script src="/assets/js/user.js"></script>
+    <script>
+        const select = document.getElementById('reg-region');
+        AZ_CITY_REGIONS.forEach(city => {
+            const opt = document.createElement('option');
+            opt.value = city; opt.textContent = city;
+            opt.className = "bg-slate-950 text-slate-300";
+            select.appendChild(opt);
+        });
+
+        document.getElementById('register-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            if(document.getElementById('reg-pass').value !== document.getElementById('reg-pass-rep').value) {
+                AdminMühərriki.mesajGöstər("Daxil etdiyiniz şifrələr üst-üstə düşmür!", "error");
+                return;
+            }
+
+            AdminMühərriki.mesajGöstər("Qeydiyyat sorğusu göndərilir...", "info");
+            const res = await BazaMühərriki.qeydiyyatYarat(document.getElementById('reg-email').value, document.getElementById('reg-pass').value, {
+                ad: document.getElementById('reg-name').value,
+                soyad: document.getElementById('reg-surname').value,
+                ata_adı: document.getElementById('reg-patronymic').value,
+                rayon: select.value,
+                idarə_adı: document.getElementById('reg-office').value,
+                bölmə: document.getElementById('reg-structure').value,
+                vəzifə: document.getElementById('reg-role').value
+            });
+
+            if(res.error) {
+                AdminMühərriki.mesajGöstər(res.error.message, "error");
+            } else {
+                GözləməEkranıYüklə();
+            }
+        });
+    </script>
+</body>
+</html>
