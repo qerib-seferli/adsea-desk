@@ -1,5 +1,6 @@
 let CURRENT = null;
 let ALL_PROFILES = [];
+let LAST_HISTORY = [];
 
 document.addEventListener("DOMContentLoaded", async () => {
   CURRENT = await Auth.requireApproved();
@@ -45,7 +46,8 @@ async function loadApp() {
       console.warn(historyError);
     }
 
-  renderApp(history || []);
+  LAST_HISTORY = history || [];
+  renderApp(LAST_HISTORY);
 }
 
 function renderApp(history) {
@@ -114,33 +116,11 @@ function renderApp(history) {
 
           <article class="card">
             <h2>Son daxil olduğunuz kompüterlər</h2>
-            <div class="history-grid">
-              ${history.map(h => {
-                const otherIsTarget = h.operator_id === CURRENT.user.id;
-                const name = otherIsTarget ? h.target_employee_name : h.operator_name;
-                const code = otherIsTarget ? h.target_device_code : h.operator_device_code;
-                
-                const person = ALL_PROFILES.find(x =>
-                  x.device_code === code ||
-                  x.id === (otherIsTarget ? h.target_user_id : h.operator_id)
-                );
-                
-                const online = person ? Presence?.isOnline?.(person.id) : false;
-              
-                return `
-                  <div class="history-item history-item-pro" onclick="setTargetCode('${esc(code)}')">
-                    <div class="history-title">
-                      <span class="live-dot ${online ? "online" : "offline"}"></span>
-                      <strong>${esc(name)}</strong>
-                    </div>
-                      <span>${esc(person?.region || h.target_region || "")} ${esc(person?.office_name || h.target_office_name || "")}</span>
-                      <span>${esc(person?.role_title || h.target_role_title || "")}</span>
-                      <code>${esc(code)}</code>
-                    <span>${esc(formatDate(h.started_at || h.connected_at))}</span>
-                  </div>
-                `;
-              }).join("") || `<p>Hələ bağlantı keçmişi yoxdur.</p>`}
-            </div>
+
+
+            <div class="history-grid" id="history-grid"></div>
+
+            
           </article>
         </section>
 
@@ -152,7 +132,43 @@ function renderApp(history) {
   `;
 
   renderTree("");
+  renderHistory(history);
 }
+
+
+function renderHistory(history = LAST_HISTORY) {
+  const root = document.getElementById("history-grid");
+  if (!root) return;
+
+  root.innerHTML = history.map(h => {
+    const otherIsTarget = h.operator_id === CURRENT.user.id;
+    const name = otherIsTarget ? h.target_employee_name : h.operator_name;
+    const code = otherIsTarget ? h.target_device_code : h.operator_device_code;
+    const otherUserId = otherIsTarget ? h.target_user_id : h.operator_id;
+
+    const person = ALL_PROFILES.find(x =>
+      x.id === otherUserId ||
+      x.device_code === code
+    );
+
+    const online = person ? Presence?.isOnline?.(person.id) : false;
+
+    return `
+      <div class="history-item history-item-pro" onclick="setTargetCode('${esc(code)}')">
+        <div class="history-title">
+          <span class="live-dot ${online ? "online" : "offline"}"></span>
+          <strong>${esc(name)}</strong>
+        </div>
+        <span>${esc(person?.region || h.target_region || "")} ${esc(person?.office_name || h.target_office_name || "")}</span>
+        <span>${esc(person?.role_title || h.target_role_title || "")}</span>
+        <code>${esc(code)}</code>
+        <span>${esc(formatDate(h.started_at || h.connected_at))}</span>
+      </div>
+    `;
+  }).join("") || `<p>Hələ bağlantı keçmişi yoxdur.</p>`;
+}
+
+
 
 function renderTree(search = "") {
   const root = document.getElementById("employee-tree");
