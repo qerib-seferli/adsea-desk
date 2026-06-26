@@ -903,30 +903,30 @@ select {
   flex-wrap: wrap;
 }
 
-.admin-tabs button {
-  min-height: 34px;
-  padding: 7px 14px;
-  border-radius: 999px;
-  border: 1px solid rgba(125, 211, 252, 0.13);
-  background: rgba(1, 12, 22, 0.38);
-  color: var(--muted);
-  font-size: 12px;
-  font-weight: 650;
+.admin-head .admin-tabs > button {
+  min-height: 36px !important;
+  padding: 7px 16px !important;
+  border-radius: 999px !important;
+  border: 1px solid rgba(125, 211, 252, 0.16) !important;
+  background: rgba(1, 12, 22, 0.42) !important;
+  color: var(--muted) !important;
+  font-size: 12px !important;
+  font-weight: 650 !important;
   cursor: pointer;
-  transition: 0.18s ease;
+  transition: 0.18s ease !important;
 }
 
-.admin-tabs button:hover {
-  color: var(--text-soft);
-  border-color: rgba(34, 211, 238, 0.28);
-  background: rgba(8, 28, 44, 0.66);
+.admin-head .admin-tabs > button:hover {
+  color: var(--text-soft) !important;
+  border-color: rgba(34, 211, 238, 0.32) !important;
+  background: rgba(8, 28, 44, 0.68) !important;
 }
 
-.admin-tabs button.active {
-  color: #67e8f9;
-  background: linear-gradient(135deg, rgba(16,185,129,.18), rgba(34,211,238,.18));
-  border-color: rgba(34,211,238,.42);
-  box-shadow: 0 0 18px rgba(34,211,238,.16);
+.admin-head .admin-tabs > button.active {
+  color: #67e8f9 !important;
+  background: linear-gradient(135deg, rgba(16,185,129,.20), rgba(34,211,238,.20)) !important;
+  border-color: rgba(34,211,238,.48) !important;
+  box-shadow: 0 0 18px rgba(34,211,238,.18) !important;
 }
 
 
