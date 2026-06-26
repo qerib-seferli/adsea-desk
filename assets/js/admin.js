@@ -115,7 +115,7 @@ function renderAdmin() {
                 id="admin-search"
                 value="${esc(ADMIN_SEARCH)}"
                 placeholder="Ad, soyad, email, rayon, idarə, vəzifə və ya cihaz kodu axtar..."
-                oninput="setAdminSearch(this.value)"
+                oninput="filterAdminTable(this.value)"
               >
             </div>
 
@@ -128,11 +128,13 @@ function renderAdmin() {
             </div>
           </div>
 
-          ${
-            rows.length
-              ? renderAdminTable(rows)
-              : `<p>Bu bölmədə məlumat yoxdur.</p>`
-          }
+            <div class="admin-table-area">
+              ${
+                rows.length
+                  ? renderAdminTable(rows)
+                  : `<p>Bu bölmədə məlumat yoxdur.</p>`
+              }
+            </div>
         </section>
       </main>
     </div>
@@ -496,3 +498,18 @@ function showEditUserModal(user) {
     await loadAdmin();
   };
 }
+
+
+function filterAdminTable(value) {
+  ADMIN_SEARCH = value || "";
+
+  const rows = getFilteredRows();
+  const card = document.querySelector(".admin-table-area");
+
+  if (!card) return;
+
+  card.innerHTML = rows.length
+    ? renderAdminTable(rows)
+    : `<p>Bu bölmədə uyğun məlumat tapılmadı.</p>`;
+}
+
