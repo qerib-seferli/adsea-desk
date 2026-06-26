@@ -1099,7 +1099,30 @@ select {
 }
 
 /*=======================================================================================================*/
+.admin-search-wrap {
+  flex: 1;
+  min-width: 280px;
+  max-width: 520px;
+}
 
+.admin-search-input {
+  height: 46px;
+  font-size: 13px;
+  border-radius: 999px;
+  padding-left: 18px;
+  padding-right: 18px;
+}
+
+@media (max-width: 900px) {
+  .admin-search-wrap {
+    width: 100%;
+    max-width: none;
+  }
+
+  .admin-search-input {
+    width: 100%;
+  }
+}
 
 /*=======================================================================================================*/
 
