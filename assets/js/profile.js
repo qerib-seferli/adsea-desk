@@ -17,6 +17,11 @@ function renderProfile() {
 
         <h1>Hesabım</h1>
         <p>Şəxsi məlumatlarınızı yeniləyə bilərsiniz.</p>
+        
+        <div class="profile-email-box">
+          <span>Korporativ e-poçt</span>
+          <b>${esc(PROFILE_CTX.user.email || p.email || "Email yoxdur")}</b>
+        </div>
 
         <form id="profile-form" class="auth-form grid-form">
           <input id="first_name" value="${esc(p.first_name)}" required placeholder="Ad" />
