@@ -1229,28 +1229,25 @@ select {
   justify-content: space-between;
 }
 
-.tree-count {
-  min-width: 24px;
-  height: 24px;
-
-  display: flex;
+.tree-badge {
+  display: inline-flex;
   align-items: center;
-  justify-content: center;
+  gap: 6px;
 
-  padding: 0 8px;
+  padding: 3px 10px;
 
   border-radius: 999px;
 
   background:
     linear-gradient(
       135deg,
-      rgba(16,185,129,.22),
-      rgba(34,211,238,.22)
+      rgba(16,185,129,.14),
+      rgba(34,211,238,.14)
     );
 
   border:
     1px solid
-    rgba(34,211,238,.25);
+    rgba(34,211,238,.22);
 
   color: #67e8f9;
 
@@ -1259,7 +1256,12 @@ select {
 
   box-shadow:
     0 0 12px
-    rgba(34,211,238,.12);
+    rgba(34,211,238,.08);
+}
+
+.tree-badge-icon {
+  font-size: 11px;
+  opacity: .9;
 }
 
 /*=======================================================================================================*/
