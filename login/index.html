@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="az">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ADSEA Desk - Giriş</title>
+  <meta name="theme-color" content="#0891b2" />
+  <link rel="icon" href="../foto/Logo.png" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <link rel="stylesheet" href="../assets/css/theme.css" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+
+<body class="auth-body">
+  <main class="auth-card">
+    <img src="../foto/Logo.png" class="auth-logo" alt="ADSEA" />
+    <h1>ADSEA Desk</h1>
+    <p>Uzaqdan idarəetmə və daxili şəbəkə portalı</p>
+
+    <form id="login-form" class="auth-form">
+      <label>Korporativ e-poçt</label>
+      <input id="login-email" type="email" required placeholder="ad.soyad@adsea.gov.az" />
+
+      <label>Şifrə</label>
+      <input id="login-password" type="password" required placeholder="••••••••" />
+
+      <button type="submit">
+        <i class="fa-solid fa-right-to-bracket"></i>
+        Sistemə daxil ol
+      </button>
+    </form>
+
+    <div class="auth-links">
+      <a href="../reset-password/">Şifrəni unutmusunuz?</a>
+      <a href="../register/">Qeydiyyatdan keçin</a>
+    </div>
+  </main>
+
+  <div id="toast-root"></div>
+
+  <script src="../assets/js/supabase.js"></script>
+  <script src="../assets/js/auth.js"></script>
+</body>
+</html>
