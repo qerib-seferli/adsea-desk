@@ -98,7 +98,7 @@ function renderAdmin() {
         
           <div class="top-user">
             <strong>${esc(fullName(ADMIN_CTX.profile))}</strong>
-            <span>${esc(ADMIN_CTX.profile.role_title)} · ${esc(ADMIN_CTX.profile.region)} / ${esc(ADMIN_CTX.profile.office_name)}</span>
+            <span>${esc(ADMIN_CTX.profile.region)} ${esc(ADMIN_CTX.profile.office_name)} · ${esc(ADMIN_CTX.profile.role_title)}</span>
           </div>
         
           <div class="top-actions">
