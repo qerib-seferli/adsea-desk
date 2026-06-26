@@ -1,4 +1,4 @@
-const CACHE_NAME = "adsea-desk-v1";
+const CACHE_NAME = "adsea-desk-v2";
 const ASSETS = [
   "./",
   "./index.html",
