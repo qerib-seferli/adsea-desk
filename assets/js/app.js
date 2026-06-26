@@ -54,9 +54,10 @@ function renderApp(history) {
           <p>${esc(p.role_title)}</p>
           <p>${esc(p.region)} | ${esc(p.office_name)}</p>
 
-          <div class="sidebar-actions">
+          <div class="sidebar-actions sidebar-actions-3">
+            <button class="small-btn" onclick="go('/profile/')">Hesabım</button>
             ${p.is_admin ? `<button class="small-btn admin" onclick="go('/admin/')">Admin panel</button>` : ""}
-            <button class="small-btn" onclick="Auth.logout()">Çıxış</button>
+            <button class="small-btn danger-soft" onclick="Auth.logout()">Çıxış</button>
           </div>
         </section>
 
