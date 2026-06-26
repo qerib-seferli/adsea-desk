@@ -124,37 +124,62 @@ function renderTree(search = "") {
 
   const list = ALL_PROFILES.filter(p => {
     if (p.id === CURRENT.user.id) return false;
-    const text = `${p.first_name} ${p.last_name} ${p.patronymic} ${p.region} ${p.office_name} ${p.department} ${p.role_title} ${p.device_code}`.toLowerCase();
+    if (p.is_blocked) return false;
+
+    const text = `
+      ${p.first_name || ""}
+      ${p.last_name || ""}
+      ${p.patronymic || ""}
+      ${p.region || ""}
+      ${p.office_name || ""}
+      ${p.department || ""}
+      ${p.role_title || ""}
+      ${p.device_code || ""}
+    `.toLowerCase();
+
     return text.includes(q);
   });
 
   const grouped = {};
 
   list.forEach(p => {
-    grouped[p.region] ||= {};
-    grouped[p.region][p.office_name] ||= [];
-    grouped[p.region][p.office_name].push(p);
+    const region = p.region || "Digər";
+    const office = p.office_name || "İdarə qeyd edilməyib";
+
+    grouped[region] ||= {};
+    grouped[region][office] ||= [];
+    grouped[region][office].push(p);
   });
 
-  root.innerHTML = Object.entries(grouped).map(([region, offices]) => `
-    <details open>
-      <summary>${esc(region)}</summary>
-      ${Object.entries(offices).map(([office, people]) => `
-        <details class="office" open>
-          <summary>${esc(office)}</summary>
-          ${people.map(person => `
-            <div class="employee" onclick="setTargetCode('${esc(person.device_code)}')">
-              <div>
-                <strong>${esc(fullName(person))}</strong>
-                <span>${esc(person.department)} | ${esc(person.role_title)}</span>
-              </div>
-              <code>${esc(person.device_code)}</code>
-            </div>
-          `).join("")}
-        </details>
-      `).join("")}
-    </details>
-  `).join("") || `<p style="color:var(--muted);font-size:13px">Uyğun əməkdaş tapılmadı.</p>`;
+  root.innerHTML =
+    Object.entries(grouped).map(([region, offices]) => `
+      <details>
+        <summary>${esc(region)}</summary>
+
+        ${Object.entries(offices).map(([office, people]) => `
+          <details class="office">
+            <summary>${esc(office)}</summary>
+
+            ${people.map(person => {
+              const online = Presence?.isOnline?.(person.id);
+              return `
+                <div class="employee" onclick="setTargetCode('${esc(person.device_code)}')">
+                  <div>
+                    <strong>
+                      <span class="live-dot ${online ? "online" : "offline"}"></span>
+                      ${esc(fullName(person))}
+                    </strong>
+                    <span>${esc(person.department)} | ${esc(person.role_title)}</span>
+                  </div>
+                  <code>${esc(person.device_code)}</code>
+                </div>
+              `;
+            }).join("")}
+          </details>
+        `).join("")}
+      </details>
+    `).join("") ||
+    `<p style="color:var(--muted);font-size:13px">Uyğun əməkdaş tapılmadı.</p>`;
 }
 
 function maskCode(input) {
