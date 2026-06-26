@@ -139,6 +139,7 @@ function renderAdminTable(rows) {
 
               <td>
                 ${statusBadge(p)}
+                ${p.blocked_reason ? `<small>${esc(p.blocked_reason)}</small>` : ""}
               </td>
 
               <td>
@@ -151,9 +152,10 @@ function renderAdminTable(rows) {
               
               <td>
                 <div class="admin-actions">
+                <button class="small-btn" onclick="editUser('${p.id}')">Redaktə et</button>
                   ${
                     p.id === ADMIN_CTX.user.id
-                      ? `<span class="badge green">Sizin admin hesabınız</span>`
+                      ? `<span class="badge green">Admin hesabı</span>`
                       : `
                         ${!p.is_approved && !p.is_blocked ? `
                           <button class="small-btn admin" onclick="approveUser('${p.id}')">Təsdiqlə</button>
@@ -248,33 +250,17 @@ async function blockUser(id) {
     return;
   }
   
-  showConfirmModal({
-    title: "Əməkdaş bloklansın?",
-    text: "Bu istifadəçi sistemə daxil ola bilməyəcək.",
-    confirmText: "Blokla",
-    cancelText: "Bağla",
-    danger: true,
-    onConfirm: async () => {
-      const { error } = await db
-        .from("profiles")
-        .update({
-          is_blocked: true,
-          is_approved: false,
-          blocked_reason: "Admin tərəfindən bloklandı",
-          updated_at: new Date().toISOString()
-        })
-        .eq("id", id);
-
-      if (error) {
-        toast("Bloklama alınmadı.", "error");
-        return;
-      }
-
-      toast("Əməkdaş bloklandı.", "success");
-      await loadAdmin();
+    const user = ADMIN_ROWS.find(p => p.id === id);
+    
+    if (!user) {
+      toast("İstifadəçi tapılmadı.", "error");
+      return;
     }
-  });
+    
+    showBlockModal(user);
 }
+
+
 
 async function unblockUser(id) {
   const { error } = await db
@@ -326,5 +312,147 @@ function showConfirmModal({ title, text, confirmText, cancelText, danger = false
   document.getElementById("modal-confirm").onclick = async () => {
     root.innerHTML = "";
     await onConfirm();
+  };
+}
+
+
+function showBlockModal(user) {
+  let root = document.getElementById("modal-root");
+
+  if (!root) {
+    root = document.createElement("div");
+    root.id = "modal-root";
+    document.body.appendChild(root);
+  }
+
+  root.innerHTML = `
+    <div class="modal-backdrop">
+      <section class="request-modal confirm-modal">
+        <h2>Əməkdaş bloklansın?</h2>
+        <p><b>${esc(fullName(user))}</b> hesabı sistemə daxil ola bilməyəcək.</p>
+
+        <label class="modal-label">Blok səbəbi</label>
+        <textarea id="block-reason" class="modal-textarea" placeholder="Məsələn: Yanlış məlumat, şübhəli fəaliyyət və s.">Admin tərəfindən bloklandı</textarea>
+
+        <div class="modal-actions">
+          <button class="small-btn" id="block-cancel">Bağla</button>
+          <button class="danger-btn" id="block-confirm">Blokla</button>
+        </div>
+      </section>
+    </div>
+  `;
+
+  document.getElementById("block-cancel").onclick = () => {
+    root.innerHTML = "";
+  };
+
+  document.getElementById("block-confirm").onclick = async () => {
+    const reason = document.getElementById("block-reason").value.trim() || "Admin tərəfindən bloklandı";
+    root.innerHTML = "";
+
+    const { error } = await db
+      .from("profiles")
+      .update({
+        is_blocked: true,
+        is_approved: false,
+        blocked_reason: reason,
+        updated_at: new Date().toISOString()
+      })
+      .eq("id", user.id);
+
+    if (error) {
+      toast("Bloklama alınmadı.", "error");
+      return;
+    }
+
+    toast("Əməkdaş bloklandı.", "success");
+    await loadAdmin();
+  };
+}
+
+function editUser(id) {
+  const user = ADMIN_ROWS.find(p => p.id === id);
+
+  if (!user) {
+    toast("İstifadəçi tapılmadı.", "error");
+    return;
+  }
+
+  showEditUserModal(user);
+}
+
+function showEditUserModal(user) {
+  let root = document.getElementById("modal-root");
+
+  if (!root) {
+    root = document.createElement("div");
+    root.id = "modal-root";
+    document.body.appendChild(root);
+  }
+
+  const selfAdmin = user.id === ADMIN_CTX.user.id;
+
+  root.innerHTML = `
+    <div class="modal-backdrop">
+      <section class="request-modal edit-modal">
+        <h2>Əməkdaş məlumatları</h2>
+        <p>${selfAdmin ? "Bu sizin admin hesabınızdır. Bloklama/silmə əməliyyatı deaktivdir." : "Məlumatları redaktə edib yadda saxlaya bilərsiniz."}</p>
+
+        <div class="edit-grid">
+          <input id="edit-first-name" value="${esc(user.first_name)}" placeholder="Ad">
+          <input id="edit-last-name" value="${esc(user.last_name)}" placeholder="Soyad">
+          <input id="edit-patronymic" value="${esc(user.patronymic)}" placeholder="Ata adı">
+          <input id="edit-region" value="${esc(user.region)}" placeholder="Rayon / şəhər">
+          <input id="edit-office" value="${esc(user.office_name)}" placeholder="İdarə">
+          <input id="edit-department" value="${esc(user.department)}" placeholder="Struktur">
+          <input id="edit-role" value="${esc(user.role_title)}" placeholder="Vəzifə">
+          <input value="${esc(user.email || "Email yoxdur")}" disabled>
+          <input value="${esc(user.device_code || "Kod yoxdur")}" disabled>
+        </div>
+
+        ${user.blocked_reason ? `
+          <div class="blocked-reason-box">
+            <b>Blok səbəbi:</b>
+            <span>${esc(user.blocked_reason)}</span>
+          </div>
+        ` : ""}
+
+        <div class="modal-actions">
+          <button class="small-btn" id="edit-cancel">Bağla</button>
+          <button class="primary-btn" id="edit-save">Yadda saxla</button>
+        </div>
+      </section>
+    </div>
+  `;
+
+  document.getElementById("edit-cancel").onclick = () => {
+    root.innerHTML = "";
+  };
+
+  document.getElementById("edit-save").onclick = async () => {
+    const payload = {
+      first_name: document.getElementById("edit-first-name").value.trim(),
+      last_name: document.getElementById("edit-last-name").value.trim(),
+      patronymic: document.getElementById("edit-patronymic").value.trim(),
+      region: document.getElementById("edit-region").value.trim(),
+      office_name: document.getElementById("edit-office").value.trim(),
+      department: document.getElementById("edit-department").value.trim(),
+      role_title: document.getElementById("edit-role").value.trim(),
+      updated_at: new Date().toISOString()
+    };
+
+    const { error } = await db
+      .from("profiles")
+      .update(payload)
+      .eq("id", user.id);
+
+    if (error) {
+      toast("Məlumatlar yenilənmədi.", "error");
+      return;
+    }
+
+    root.innerHTML = "";
+    toast("Əməkdaş məlumatları yeniləndi.", "success");
+    await loadAdmin();
   };
 }
