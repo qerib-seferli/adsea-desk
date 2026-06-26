@@ -11,7 +11,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 });
 
 async function loadApp() {
-  const { data: profiles, error } = await supabase
+  const { data: profiles, error } = await db
     .from("profiles")
     .select("*")
     .eq("is_approved", true)
@@ -24,7 +24,7 @@ async function loadApp() {
 
   ALL_PROFILES = profiles || [];
 
-  const { data: history } = await supabase
+  const { data: history } = await db
     .from("connection_history")
     .select("*")
     .eq("operator_id", CURRENT.user.id)
