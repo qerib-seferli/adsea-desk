@@ -87,6 +87,15 @@ const Auth = {
 
     const profile = await this.profile(session.user.id);
 
+
+    if (profile.is_blocked) {
+      await db.auth.signOut();
+      toast("Hesabınız administrator tərəfindən bloklanıb.", "error");
+      setTimeout(() => go("/login/"), 900);
+      return null;
+    }
+
+    
     if (!profile.is_approved) {
       await db.auth.signOut();
       toast("Hesabınız hələ admin tərəfindən təsdiqlənməyib.", "warn");
