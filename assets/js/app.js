@@ -68,7 +68,7 @@ function renderApp(history) {
         
           <div class="top-user">
             <strong>${esc(fullName(p))}</strong>
-            <span>${esc(p.role_title)} · ${esc(p.region)} / ${esc(p.office_name)}</span>
+            <span>${esc(p.region)} ${esc(p.office_name)} · ${esc(p.role_title)}</span>
           </div>
         
           <div class="top-actions">
