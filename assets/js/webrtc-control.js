@@ -1,3 +1,32 @@
+function parseSignalPayload(payload) {
+  if (!payload) return {};
+  if (typeof payload === "string") {
+    try { return JSON.parse(payload); } catch { return {}; }
+  }
+  return payload;
+}
+
+function notifySound() {
+  try {
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+
+    osc.type = "sine";
+    osc.frequency.value = 880;
+    gain.gain.value = 0.08;
+
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+
+    osc.start();
+    setTimeout(() => {
+      osc.stop();
+      ctx.close();
+    }, 450);
+  } catch {}
+}
+
 const WebRTCControl = {
   signalChannel: null,
 
@@ -36,17 +65,14 @@ const WebRTCControl = {
         operator_id: senderProfile.id,
         operator_name: fullName(senderProfile),
         operator_device_code: senderProfile.device_code,
-
         target_user_id: targetProfile.id,
         target_device_code: targetProfile.device_code,
         target_employee_name: fullName(targetProfile),
         target_details: profileDetails(targetProfile),
-
         target_region: targetProfile.region,
         target_office_name: targetProfile.office_name,
         target_department: targetProfile.department,
         target_role_title: targetProfile.role_title,
-
         started_at: new Date().toISOString(),
         connected_at: new Date().toISOString(),
         status: "requested",
@@ -67,7 +93,7 @@ const WebRTCControl = {
       sender_id: senderProfile.id,
       target_code: targetProfile.device_code,
       type: "connection-request",
-      payload
+      payload: JSON.stringify(payload)
     });
 
     if (error) {
@@ -79,75 +105,72 @@ const WebRTCControl = {
   },
 
   async handleSignal(myProfile, signal) {
+    const p = parseSignalPayload(signal.payload);
+
     if (signal.type === "connection-request") {
+      notifySound();
+
+      showSystemNotification(
+        "ADSEA Desk - Gələn qoşulma sorğusu",
+        `${p.sender_name || "Əməkdaş"} sizin kompüterə qoşulmaq istəyir.`
+      );
+
       this.showIncomingRequest(myProfile, signal);
       return;
     }
 
     if (signal.type === "connection-response") {
-      const p = parseSignalPayload(signal.payload);
-      const accepted = p.accepted;
-
       toast(
-        accepted
-          ? "Qarşı tərəf bağlantıya icazə verdi."
-          : "Qarşı tərəf bağlantını rədd etdi.",
-        accepted ? "success" : "error"
+        p.accepted ? "Qarşı tərəf bağlantıya icazə verdi." : "Qarşı tərəf bağlantını rədd etdi.",
+        p.accepted ? "success" : "error"
       );
     }
   },
 
-showIncomingRequest(myProfile, signal) {
-  const p = parseSignalPayload(signal.payload);
+  showIncomingRequest(myProfile, signal) {
+    const p = parseSignalPayload(signal.payload);
+    let root = document.getElementById("modal-root");
 
-  showSystemNotification(
-    "ADSEA Desk - Gələn qoşulma sorğusu",
-    `${p.sender_name || "Əməkdaş"} sizin kompüterə qoşulmaq istəyir.`
-  );
-  
-  const root = document.getElementById("modal-root");
+    if (!root) {
+      root = document.createElement("div");
+      root.id = "modal-root";
+      document.body.appendChild(root);
+    }
 
-  root.innerHTML = `
-    <div class="modal-backdrop">
-      <section class="request-modal incoming-modal">
-        <button class="modal-close" onclick="document.getElementById('modal-root').innerHTML=''">×</button>
+    root.innerHTML = `
+      <div class="modal-backdrop">
+        <section class="request-modal incoming-modal">
+          <button class="modal-close" onclick="document.getElementById('modal-root').innerHTML=''">×</button>
 
-        <div class="incoming-head">
-          <div class="incoming-avatar">
-            <span>👤</span>
+          <div class="incoming-head">
+            <div class="incoming-avatar"><span>👤</span></div>
+            <div>
+              <h2>Gələn uzaqdan qoşulma sorğusu</h2>
+              <p>Aşağıdakı əməkdaş sizin kompüterə qoşulmaq istəyir.</p>
+            </div>
           </div>
-          <div>
-            <h2>Gələn uzaqdan qoşulma sorğusu</h2>
-            <p>Aşağıdakı əməkdaş sizin kompüterə qoşulmaq istəyir.</p>
+
+          <div class="incoming-grid">
+            <div><b>Ad Soyad</b><span>${esc(p.sender_name)}</span></div>
+            <div><b>Rayon</b><span>${esc(p.sender_region)}</span></div>
+            <div><b>İdarə</b><span>${esc(p.sender_office)}</span></div>
+            <div><b>Struktur</b><span>${esc(p.sender_department)}</span></div>
+            <div><b>Vəzifə</b><span>${esc(p.sender_role)}</span></div>
+            <div><b>Cihaz kodu</b><span class="code-yellow big">${esc(p.sender_device_code)}</span></div>
           </div>
-        </div>
 
-        <div class="incoming-grid">
-          <div><b>Ad Soyad</b><span>${esc(p.sender_name)}</span></div>
-          <div><b>Rayon</b><span>${esc(p.sender_region)}</span></div>
-          <div><b>İdarə</b><span>${esc(p.sender_office)}</span></div>
-          <div><b>Struktur</b><span>${esc(p.sender_department)}</span></div>
-          <div><b>Vəzifə</b><span>${esc(p.sender_role)}</span></div>
-          <div><b>Cihaz kodu</b><span class="code-yellow big">${esc(p.sender_device_code)}</span></div>
-        </div>
-
-        <div class="security-note">
-          <b>Təhlükəsizlik qeydi</b>
-          <span>Yalnız tanıdığınız və gözlədiyiniz əməkdaşlara icazə verin.</span>
-        </div>
-
-        <div class="modal-actions">
-          <button class="danger-btn" onclick="WebRTCControl.respond('${signal.id}', '${esc(p.sender_device_code)}', false)">Rədd et</button>
-          <button class="primary-btn" onclick="WebRTCControl.respond('${signal.id}', '${esc(p.sender_device_code)}', true)">İcazə ver</button>
-        </div>
-      </section>
-    </div>
-  `;
-},
+          <div class="modal-actions">
+            <button class="danger-btn" onclick="WebRTCControl.respond('${signal.id}', '${esc(p.sender_device_code)}', false)">Rədd et</button>
+            <button class="primary-btn" onclick="WebRTCControl.respond('${signal.id}', '${esc(p.sender_device_code)}', true)">İcazə ver</button>
+          </div>
+        </section>
+      </div>
+    `;
+  },
 
   async respond(signalId, senderDeviceCode, accepted) {
-    const modalRoot = document.getElementById("modal-root");
-    if (modalRoot) modalRoot.innerHTML = "";
+    const root = document.getElementById("modal-root");
+    if (root) root.innerHTML = "";
 
     const { data: originalSignal, error: signalReadError } = await db
       .from("signals")
@@ -156,22 +179,20 @@ showIncomingRequest(myProfile, signal) {
       .single();
 
     if (signalReadError) {
+      console.error(signalReadError);
       toast("Sorğu məlumatı oxunmadı.", "error");
       return;
     }
 
-    const originalPayload = parseSignalPayload(originalSignal?.payload);
+    const originalPayload = parseSignalPayload(originalSignal.payload);
     const historyId = originalPayload.history_id;
 
-    await db
-      .from("signals")
-      .update({ is_read: true })
-      .eq("id", signalId);
+    await db.from("signals").update({ is_read: true }).eq("id", signalId);
 
-    const my = CURRENT?.profile || await Auth.profile((await Auth.user()).id);
+    const my = CURRENT?.profile || ADMIN_CTX?.profile || PROFILE_CTX?.profile || await Auth.profile((await Auth.user()).id);
 
     if (historyId) {
-      await db
+      const { error: historyUpdateError } = await db
         .from("connection_history")
         .update({
           response_status: accepted ? "accepted" : "rejected",
@@ -180,39 +201,25 @@ showIncomingRequest(myProfile, signal) {
           duration_seconds: 0
         })
         .eq("id", historyId);
+
+      if (historyUpdateError) {
+        console.error(historyUpdateError);
+      }
     }
 
     await db.from("signals").insert({
       sender_id: my.id,
       target_code: senderDeviceCode,
       type: "connection-response",
-      payload: {
+      payload: JSON.stringify({
         accepted,
         history_id: historyId,
         responder_name: fullName(my),
         responder_device_code: my.device_code,
         responded_at: new Date().toISOString()
-      }
+      })
     });
 
-    toast(
-      accepted ? "Qoşulmaya icazə verildi." : "Qoşulma rədd edildi.",
-      accepted ? "success" : "error"
-    );
+    toast(accepted ? "Qoşulmaya icazə verildi." : "Qoşulma rədd edildi.", accepted ? "success" : "error");
   }
 };
-
-
-function parseSignalPayload(payload) {
-  if (!payload) return {};
-  if (typeof payload === "string") {
-    try {
-      return JSON.parse(payload);
-    } catch {
-      return {};
-    }
-  }
-  return payload;
-}
-
-
