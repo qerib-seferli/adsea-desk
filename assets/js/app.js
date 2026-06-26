@@ -162,22 +162,26 @@ function renderTree(search = "") {
     Object.entries(grouped).map(([region, offices]) => `
       <details>
       
-        <summary>
-          <span>${esc(region)}</span>
-          <span class="tree-count">
-            ${Object.keys(offices).length}
-          </span>
-        </summary>
+      <summary>
+        <span>${esc(region)}</span>
+      
+        <span class="tree-badge">
+          <span class="tree-badge-icon">🏢</span>
+          <span>${Object.keys(offices).length}</span>
+        </span>
+      </summary>
 
         ${Object.entries(offices).map(([office, people]) => `
           <details class="office">
           
-            <summary>
-              <span>${esc(office)}</span>
-              <span class="tree-count">
-                ${people.length}
-              </span>
-            </summary>
+        <summary>
+          <span>${esc(office)}</span>
+        
+          <span class="tree-badge">
+            <span class="tree-badge-icon">👤</span>
+            <span>${people.length}</span>
+          </span>
+        </summary>
 
             ${people.map(person => {
               const online = Presence?.isOnline?.(person.id);
