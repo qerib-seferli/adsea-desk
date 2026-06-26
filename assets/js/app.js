@@ -51,7 +51,7 @@ function renderApp(history) {
 
         <section class="user-box compact-user-box">
           <h3>Əməkdaşlar</h3>
-          <p>Region / idarə üzrə canlı siyahı</p>
+          <p>Rayon və idarələr üzrə qeydiyyatdan keçmiş əməkdaşlar</p>
         </section>
 
         <input class="app-input" id="employee-search" placeholder="Rayon, idarə və ya əməkdaş axtar..." oninput="renderTree(this.value)">
