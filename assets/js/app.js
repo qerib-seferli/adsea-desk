@@ -8,6 +8,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   await loadApp();
   Presence.start(CURRENT.profile);
+  askNotificationPermission();
   WebRTCControl.listen(CURRENT.profile);
 });
 
