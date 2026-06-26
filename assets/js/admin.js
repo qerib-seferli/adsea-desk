@@ -114,7 +114,8 @@ function renderAdminTable(rows) {
             <th>Region / İdarə</th>
             <th>Struktur / Vəzifə</th>
             <th>Status</th>
-            <th>Tarix</th>
+            <th>Qeydiyyat</th>
+            <th>Son aktivlik</th>
             <th>Əməliyyat</th>
           </tr>
         </thead>
@@ -124,6 +125,7 @@ function renderAdminTable(rows) {
             <tr>
               <td>
                 <strong>${esc(fullName(p))}</strong>
+                <small>${esc(p.email || "Email yoxdur")}</small>
                 <small>${esc(p.device_code || "Kod yoxdur")}</small>
               </td>
 
@@ -142,7 +144,11 @@ function renderAdminTable(rows) {
               <td>
                 ${esc(formatDate(p.created_at))}
               </td>
-
+              
+              <td>
+                ${p.last_seen_at ? esc(formatDate(p.last_seen_at)) : "Hələ daxil olmayıb"}
+              </td>
+              
               <td>
                 <div class="admin-actions">
                   ${!p.is_approved && !p.is_blocked ? `
