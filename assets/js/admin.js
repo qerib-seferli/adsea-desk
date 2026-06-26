@@ -109,19 +109,25 @@ async function approveUser(id) {
 }
 
 async function rejectUser(id) {
-  const ok = confirm("Bu qeydiyyat sorğusu silinsin?");
-  if (!ok) return;
+  showConfirmModal({
+    title: "Qeydiyyat sorğusu rədd edilsin?",
+    text: "Bu əməkdaşın qeydiyyat sorğusu silinəcək və həmin email ilə yenidən müraciət edə biləcək.",
+    confirmText: "Rədd et",
+    cancelText: "Bağla",
+    danger: true,
+    onConfirm: async () => {
+      const { error } = await db
+        .from("profiles")
+        .delete()
+        .eq("id", id);
 
-  const { error } = await db
-    .from("profiles")
-    .delete()
-    .eq("id", id);
+      if (error) {
+        toast("Sorğu silinmədi.", "error");
+        return;
+      }
 
-  if (error) {
-    toast("Sorğu silinmədi.", "error");
-    return;
-  }
-
-  toast("Sorğu rədd edildi.", "success");
-  await loadAdmin();
+      toast("Sorğu rədd edildi və istifadəçi sistemdən silindi.", "success");
+      await loadAdmin();
+    }
+  });
 }
