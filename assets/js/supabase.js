@@ -6,7 +6,7 @@ const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
     persistSession: true,
     autoRefreshToken: true,
     detectSessionInUrl: true
-  }
+  } 
 });
 
 const BASE_PATH = location.pathname.includes("/adsea-desk") ? "/adsea-desk" : "";
