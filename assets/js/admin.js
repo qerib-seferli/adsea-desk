@@ -9,6 +9,7 @@ ADMIN_CTX = await Auth.requireAdmin();
 if (!ADMIN_CTX) return;
 
 Presence.start(ADMIN_CTX.profile);
+askNotificationPermission();
 WebRTCControl.listen(ADMIN_CTX.profile);
 
 await loadAdmin();
