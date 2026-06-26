@@ -152,7 +152,7 @@ function renderAdminTable(rows) {
               
               <td>
                 <div class="admin-actions">
-                <button class="small-btn" onclick="editUser('${p.id}')">Redaktə et</button>
+                <button class="small-btn" onclick="editUser('${p.id}')">🖊️</button>
                   ${
                     p.id === ADMIN_CTX.user.id
                       ? `<span class="badge green">Admin hesabı</span>`
