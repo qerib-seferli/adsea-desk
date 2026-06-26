@@ -1,29 +1,43 @@
 function parseSignalPayload(payload) {
   if (!payload) return {};
-  if (typeof payload === "string") {
-    try { return JSON.parse(payload); } catch { return {}; }
+
+  let p = payload;
+
+  for (let i = 0; i < 2; i++) {
+    if (typeof p === "string") {
+      try {
+        p = JSON.parse(p);
+      } catch {
+        return {};
+      }
+    }
   }
-  return payload;
+
+  return p && typeof p === "object" ? p : {};
 }
 
 function notifySound() {
   try {
     const ctx = new (window.AudioContext || window.webkitAudioContext)();
-    const osc = ctx.createOscillator();
-    const gain = ctx.createGain();
 
-    osc.type = "sine";
-    osc.frequency.value = 880;
-    gain.gain.value = 0.08;
+    [0, 260, 520].forEach((delay) => {
+      setTimeout(() => {
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
 
-    osc.connect(gain);
-    gain.connect(ctx.destination);
+        osc.type = "square";
+        osc.frequency.value = 1050;
+        gain.gain.value = 0.16;
 
-    osc.start();
-    setTimeout(() => {
-      osc.stop();
-      ctx.close();
-    }, 450);
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+
+        osc.start();
+        setTimeout(() => osc.stop(), 180);
+      }, delay);
+    });
+
+    setTimeout(() => ctx.close(), 1000);
   } catch {}
 }
 
@@ -191,21 +205,35 @@ const WebRTCControl = {
 
     const my = CURRENT?.profile || ADMIN_CTX?.profile || PROFILE_CTX?.profile || await Auth.profile((await Auth.user()).id);
 
-    if (historyId) {
-      const { error: historyUpdateError } = await db
-        .from("connection_history")
-        .update({
-          response_status: accepted ? "accepted" : "rejected",
-          status: accepted ? "accepted" : "rejected",
-          ended_at: accepted ? null : new Date().toISOString(),
-          duration_seconds: 0
-        })
-        .eq("id", historyId);
+let finalHistoryId = historyId;
 
-      if (historyUpdateError) {
-        console.error(historyUpdateError);
-      }
-    }
+if (!finalHistoryId) {
+  const { data: latestPending } = await db
+    .from("connection_history")
+    .select("id")
+    .eq("operator_device_code", senderDeviceCode)
+    .eq("target_device_code", my.device_code)
+    .eq("response_status", "pending")
+    .order("started_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  finalHistoryId = latestPending?.id;
+}
+
+if (finalHistoryId) {
+  const { error: historyUpdateError } = await db
+    .from("connection_history")
+    .update({
+      response_status: accepted ? "accepted" : "rejected",
+      status: accepted ? "accepted" : "rejected",
+      ended_at: accepted ? null : new Date().toISOString(),
+      duration_seconds: 0
+    })
+    .eq("id", finalHistoryId);
+
+  if (historyUpdateError) console.error(historyUpdateError);
+}
 
     await db.from("signals").insert({
       sender_id: my.id,
