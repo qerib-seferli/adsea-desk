@@ -19,6 +19,10 @@ const Presence = {
         const search = document.getElementById("employee-search")?.value || "";
         renderTree(search);
       }
+
+      if (typeof renderHistory === "function") {
+        renderHistory();
+      }
     });
 
     this.channel.subscribe(async status => {
