@@ -787,3 +787,49 @@ select {
     height: 48px;
   }
 }
+
+
+/*2*/
+.live-dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  margin-right: 7px;
+  border-radius: 999px;
+  vertical-align: 1px;
+}
+
+.live-dot.online {
+  background: var(--green);
+  box-shadow: 0 0 12px rgba(16, 185, 129, 0.95);
+  animation: livePulse 1.6s infinite ease-in-out;
+}
+
+.live-dot.offline {
+  background: var(--red);
+  opacity: 0.75;
+  box-shadow: 0 0 8px rgba(239, 68, 68, 0.55);
+}
+
+@keyframes livePulse {
+  0%, 100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+
+  50% {
+    transform: scale(1.35);
+    opacity: 0.55;
+  }
+}
+
+.confirm-modal {
+  max-width: 460px;
+}
+
+.confirm-modal p {
+  color: var(--muted);
+  font-size: 14px;
+  line-height: 1.6;
+  margin: 8px 0 18px;
+}
