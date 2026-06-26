@@ -151,18 +151,24 @@ function renderAdminTable(rows) {
               
               <td>
                 <div class="admin-actions">
-                  ${!p.is_approved && !p.is_blocked ? `
-                    <button class="small-btn admin" onclick="approveUser('${p.id}')">Təsdiqlə</button>
-                    <button class="small-btn danger-soft" onclick="rejectUser('${p.id}')">Rədd et</button>
-                  ` : ""}
-
-                  ${p.is_approved && !p.is_blocked ? `
-                    <button class="small-btn" onclick="blockUser('${p.id}')">Blokla</button>
-                  ` : ""}
-
-                  ${p.is_blocked ? `
-                    <button class="small-btn admin" onclick="unblockUser('${p.id}')">Aktiv et</button>
-                  ` : ""}
+                  ${
+                    p.id === ADMIN_CTX.user.id
+                      ? `<span class="badge green">Sizin admin hesabınız</span>`
+                      : `
+                        ${!p.is_approved && !p.is_blocked ? `
+                          <button class="small-btn admin" onclick="approveUser('${p.id}')">Təsdiqlə</button>
+                          <button class="small-btn danger-soft" onclick="rejectUser('${p.id}')">Rədd et</button>
+                        ` : ""}
+              
+                        ${p.is_approved && !p.is_blocked ? `
+                          <button class="small-btn danger-soft" onclick="blockUser('${p.id}')">Blokla</button>
+                        ` : ""}
+              
+                        ${p.is_blocked ? `
+                          <button class="small-btn admin" onclick="unblockUser('${p.id}')">Aktiv et</button>
+                        ` : ""}
+                      `
+                  }
                 </div>
               </td>
             </tr>
@@ -205,6 +211,12 @@ async function approveUser(id) {
 }
 
 async function rejectUser(id) {
+
+    if (id === ADMIN_CTX.user.id) {
+    toast("Öz admin hesabınızı silmək mümkün deyil.", "error");
+    return;
+  }
+  
   showConfirmModal({
     title: "Qeydiyyat sorğusu rədd edilsin?",
     text: "Bu əməkdaşın qeydiyyat sorğusu tam silinəcək və həmin email ilə yenidən müraciət edə biləcək.",
@@ -228,7 +240,14 @@ async function rejectUser(id) {
   });
 }
 
+
 async function blockUser(id) {
+  
+    if (id === ADMIN_CTX.user.id) {
+    toast("Öz admin hesabınızı bloklamaq mümkün deyil.", "error");
+    return;
+  }
+  
   showConfirmModal({
     title: "Əməkdaş bloklansın?",
     text: "Bu istifadəçi sistemə daxil ola bilməyəcək.",
