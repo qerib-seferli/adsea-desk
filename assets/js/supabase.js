@@ -77,41 +77,39 @@ const Auth = {
     return data;
   },
 
-  
   async requireApproved() {
     const session = await this.session();
-  
+
     if (!session) {
       go("/login/");
       return null;
     }
-  
+
     const profile = await this.profile(session.user.id);
-  
+
     if (profile.is_blocked) {
       await db.auth.signOut();
       toast("Hesabınız administrator tərəfindən bloklanıb.", "error");
       setTimeout(() => go("/login/"), 900);
       return null;
     }
-  
+
     if (!profile.is_approved) {
       await db.auth.signOut();
       toast("Hesabınız hələ admin tərəfindən təsdiqlənməyib.", "warn");
       setTimeout(() => go("/login/"), 900);
       return null;
     }
-  
+
     await db
       .from("profiles")
       .update({
         last_seen_at: new Date().toISOString()
       })
       .eq("id", session.user.id);
-  
+
     return { session, user: session.user, profile };
-  }
-    
+  },
 
   async requireAdmin() {
     const ctx = await this.requireApproved();
@@ -131,3 +129,4 @@ const Auth = {
     go("/login/");
   }
 };
+
