@@ -2,6 +2,7 @@ let ADMIN_CTX = null;
 let ADMIN_TAB = "pending";
 let ADMIN_ROWS = [];
 let ADMIN_SEARCH = "";
+let ADMIN_HISTORY = [];
 
 document.addEventListener("DOMContentLoaded", async () => {
   ADMIN_CTX = await Auth.requireAdmin();
@@ -22,11 +23,50 @@ async function loadAdmin() {
   }
 
   ADMIN_ROWS = data || [];
+  
+  const { data: historyData, error: historyError } = await db
+    .from("connection_history")
+    .select("*")
+    .order("started_at", { ascending: false })
+    .limit(200);
+  
+  if (historyError) {
+    console.warn(historyError);
+  }
+  
+  ADMIN_HISTORY = historyData || [];
+  
   renderAdmin();
 }
 
 
 function getFilteredRows() {
+  if (ADMIN_TAB === "connections") {
+    let rows = ADMIN_HISTORY;
+
+    const q = ADMIN_SEARCH.trim().toLowerCase();
+
+    if (!q) return rows;
+
+    return rows.filter(h => {
+      const text = `
+        ${h.operator_name || ""}
+        ${h.operator_device_code || ""}
+        ${h.target_employee_name || ""}
+        ${h.target_device_code || ""}
+        ${h.target_details || ""}
+        ${h.target_region || ""}
+        ${h.target_office_name || ""}
+        ${h.target_department || ""}
+        ${h.target_role_title || ""}
+        ${h.status || ""}
+        ${h.response_status || ""}
+      `.toLowerCase();
+
+      return text.includes(q);
+    });
+  }
+
   let rows = [];
 
   if (ADMIN_TAB === "pending") {
@@ -132,16 +172,17 @@ function renderAdmin() {
               <button class="${ADMIN_TAB === "active" ? "active" : ""}" onclick="setAdminTab('active')">Aktiv</button>
               <button class="${ADMIN_TAB === "blocked" ? "active" : ""}" onclick="setAdminTab('blocked')">Bloklu</button>
               <button class="${ADMIN_TAB === "all" ? "active" : ""}" onclick="setAdminTab('all')">Hamısı</button>
+              <button class="${ADMIN_TAB === "connections" ? "active" : ""}" onclick="setAdminTab('connections')">Bağlantılar</button>
             </div>
           </div>
 
-            <div class="admin-table-area">
-              ${
-                rows.length
-                  ? renderAdminTable(rows)
-                  : `<p>Bu bölmədə məlumat yoxdur.</p>`
-              }
-            </div>
+          <div class="admin-table-area">
+            ${
+              rows.length
+                ? (ADMIN_TAB === "connections" ? renderConnectionTable(rows) : renderAdminTable(rows))
+                : `<p>Bu bölmədə məlumat yoxdur.</p>`
+            }
+          </div>
         </section>
       </main>
     </div>
@@ -515,8 +556,83 @@ function filterAdminTable(value) {
 
   if (!card) return;
 
-  card.innerHTML = rows.length
-    ? renderAdminTable(rows)
-    : `<p>Bu bölmədə uyğun məlumat tapılmadı.</p>`;
+card.innerHTML = rows.length
+  ? (ADMIN_TAB === "connections" ? renderConnectionTable(rows) : renderAdminTable(rows))
+  : `<p>Bu bölmədə uyğun məlumat tapılmadı.</p>`;
 }
 
+
+function renderConnectionTable(rows) {
+  return `
+    <div class="admin-table-wrap">
+      <table class="admin-table">
+        <thead>
+          <tr>
+            <th>Operator</th>
+            <th>Qoşulduğu əməkdaş</th>
+            <th>İdarə / struktur</th>
+            <th>Başlama</th>
+            <th>Bitmə</th>
+            <th>Müddət</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+
+        <tbody>
+          ${rows.map(h => `
+            <tr>
+              <td>
+                <strong>${esc(h.operator_name || "Naməlum")}</strong>
+                <small>${esc(h.operator_device_code || "")}</small>
+              </td>
+
+              <td>
+                <strong>${esc(h.target_employee_name || "Naməlum")}</strong>
+                <small>${esc(h.target_device_code || "")}</small>
+              </td>
+
+              <td>
+                ${esc(h.target_region || "")} / ${esc(h.target_office_name || "")}
+                <small>${esc(h.target_department || "")} / ${esc(h.target_role_title || "")}</small>
+              </td>
+
+              <td>${esc(formatDate(h.started_at || h.connected_at))}</td>
+
+              <td>${h.ended_at ? esc(formatDate(h.ended_at)) : "Davam edir / tamamlanmayıb"}</td>
+
+              <td>${formatDuration(h.duration_seconds || 0)}</td>
+
+              <td>${connectionBadge(h)}</td>
+            </tr>
+          `).join("")}
+        </tbody>
+      </table>
+    </div>
+  `;
+}
+
+function formatDuration(seconds) {
+  const s = Number(seconds || 0);
+
+  if (s <= 0) return "0 dəq";
+
+  const hours = Math.floor(s / 3600);
+  const minutes = Math.floor((s % 3600) / 60);
+  const rest = s % 60;
+
+  if (hours > 0) return `${hours} saat ${minutes} dəq`;
+  if (minutes > 0) return `${minutes} dəq ${rest} san`;
+  return `${rest} san`;
+}
+
+function connectionBadge(h) {
+  if (h.response_status === "accepted") {
+    return `<span class="badge green">İcazə verildi</span>`;
+  }
+
+  if (h.response_status === "rejected") {
+    return `<span class="badge red">Rədd edildi</span>`;
+  }
+
+  return `<span class="badge amber">Gözləyir</span>`;
+}
