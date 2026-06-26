@@ -286,6 +286,11 @@ async function connectByCode() {
   toast("Öz cihazınıza qoşulma sorğusu göndərmək mümkün deyil.", "error");
   return;
   }
+
+  if (!Presence?.isOnline?.(target.id)) {
+  toast("Qarşı tərəf hazırda offline-dır. Sorğu göndərilmədi.", "warn");
+  return;
+  }
   
   await WebRTCControl.requestConnection(CURRENT.profile, target);
 }
