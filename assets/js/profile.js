@@ -5,6 +5,7 @@ PROFILE_CTX = await Auth.requireApproved();
 if (!PROFILE_CTX) return;
 
 Presence.start(PROFILE_CTX.profile);
+askNotificationPermission();
 WebRTCControl.listen(PROFILE_CTX.profile);
 
 renderProfile();
