@@ -565,12 +565,12 @@ card.innerHTML = rows.length
 function renderConnectionTable(rows) {
   return `
     <div class="admin-table-wrap">
-      <table class="admin-table">
+      <table class="admin-table connection-table">
         <thead>
           <tr>
-            <th>Operator</th>
+            <th>Sorğu göndərən</th>
             <th>Qoşulduğu əməkdaş</th>
-            <th>İdarə / struktur</th>
+            <th>Qəbul edən tərəfin idarəsi</th>
             <th>Başlama</th>
             <th>Bitmə</th>
             <th>Müddət</th>
@@ -583,22 +583,23 @@ function renderConnectionTable(rows) {
             <tr>
               <td>
                 <strong>${esc(h.operator_name || "Naməlum")}</strong>
-                <small>${esc(h.operator_device_code || "")}</small>
+                <small class="code-yellow">${esc(h.operator_device_code || "")}</small>
               </td>
 
               <td>
                 <strong>${esc(h.target_employee_name || "Naməlum")}</strong>
-                <small>${esc(h.target_device_code || "")}</small>
+                <small class="code-yellow">${esc(h.target_device_code || "")}</small>
               </td>
 
               <td>
-                ${esc(h.target_region || "")} / ${esc(h.target_office_name || "")}
-                <small>${esc(h.target_department || "")} / ${esc(h.target_role_title || "")}</small>
+                <strong>${esc(h.target_region || "")} ${esc(h.target_office_name || "")}</strong>
+                <small>${esc(h.target_department || "")}</small>
+                <small>${esc(h.target_role_title || "")}</small>
               </td>
 
               <td>${esc(formatDate(h.started_at || h.connected_at))}</td>
 
-              <td>${h.ended_at ? esc(formatDate(h.ended_at)) : "Davam edir / tamamlanmayıb"}</td>
+              <td>${h.ended_at ? esc(formatDate(h.ended_at)) : "Davam edir"}</td>
 
               <td>${formatDuration(h.duration_seconds || 0)}</td>
 
