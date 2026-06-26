@@ -99,6 +99,12 @@ const WebRTCControl = {
 
 showIncomingRequest(myProfile, signal) {
   const p = parseSignalPayload(signal.payload);
+
+  showSystemNotification(
+    "ADSEA Desk - Gələn qoşulma sorğusu",
+    `${p.sender_name || "Əməkdaş"} sizin kompüterə qoşulmaq istəyir.`
+  );
+  
   const root = document.getElementById("modal-root");
 
   root.innerHTML = `
