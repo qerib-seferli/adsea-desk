@@ -2,7 +2,7 @@ const WebRTCControl = {
   signalChannel: null,
 
   listen(profile) {
-    this.signalChannel = supabase
+    this.signalChannel = db
       .channel(`signals-${profile.device_code}`)
       .on(
         "postgres_changes",
@@ -26,10 +26,44 @@ const WebRTCControl = {
       sender_department: senderProfile.department,
       sender_role: senderProfile.role_title,
       target_name: fullName(targetProfile),
+      target_device_code: targetProfile.device_code,
       requested_at: new Date().toISOString()
     };
 
-    const { error } = await supabase.from("signals").insert({
+    const { data: historyRow, error: historyError } = await db
+      .from("connection_history")
+      .insert({
+        operator_id: senderProfile.id,
+        operator_name: fullName(senderProfile),
+        operator_device_code: senderProfile.device_code,
+
+        target_user_id: targetProfile.id,
+        target_device_code: targetProfile.device_code,
+        target_employee_name: fullName(targetProfile),
+        target_details: profileDetails(targetProfile),
+
+        target_region: targetProfile.region,
+        target_office_name: targetProfile.office_name,
+        target_department: targetProfile.department,
+        target_role_title: targetProfile.role_title,
+
+        started_at: new Date().toISOString(),
+        connected_at: new Date().toISOString(),
+        status: "requested",
+        response_status: "pending"
+      })
+      .select()
+      .single();
+
+    if (historyError) {
+      console.error(historyError);
+      toast("Bağlantı keçmişi yazılmadı.", "error");
+      return;
+    }
+
+    payload.history_id = historyRow.id;
+
+    const { error } = await db.from("signals").insert({
       sender_id: senderProfile.id,
       target_code: targetProfile.device_code,
       type: "connection-request",
@@ -52,7 +86,13 @@ const WebRTCControl = {
 
     if (signal.type === "connection-response") {
       const accepted = signal.payload?.accepted;
-      toast(accepted ? "Qarşı tərəf bağlantıya icazə verdi." : "Qarşı tərəf bağlantını rədd etdi.", accepted ? "success" : "error");
+
+      toast(
+        accepted
+          ? "Qarşı tərəf bağlantıya icazə verdi."
+          : "Qarşı tərəf bağlantını rədd etdi.",
+        accepted ? "success" : "error"
+      );
     }
   },
 
@@ -85,27 +125,57 @@ const WebRTCControl = {
   },
 
   async respond(signalId, senderDeviceCode, accepted) {
-    document.getElementById("modal-root").innerHTML = "";
+    const modalRoot = document.getElementById("modal-root");
+    if (modalRoot) modalRoot.innerHTML = "";
 
-    await supabase
+    const { data: originalSignal, error: signalReadError } = await db
+      .from("signals")
+      .select("*")
+      .eq("id", signalId)
+      .single();
+
+    if (signalReadError) {
+      toast("Sorğu məlumatı oxunmadı.", "error");
+      return;
+    }
+
+    const historyId = originalSignal?.payload?.history_id;
+
+    await db
       .from("signals")
       .update({ is_read: true })
       .eq("id", signalId);
 
     const my = CURRENT?.profile || await Auth.profile((await Auth.user()).id);
 
-    await supabase.from("signals").insert({
+    if (historyId) {
+      await db
+        .from("connection_history")
+        .update({
+          response_status: accepted ? "accepted" : "rejected",
+          status: accepted ? "accepted" : "rejected",
+          ended_at: accepted ? null : new Date().toISOString(),
+          duration_seconds: 0
+        })
+        .eq("id", historyId);
+    }
+
+    await db.from("signals").insert({
       sender_id: my.id,
       target_code: senderDeviceCode,
       type: "connection-response",
       payload: {
         accepted,
+        history_id: historyId,
         responder_name: fullName(my),
         responder_device_code: my.device_code,
         responded_at: new Date().toISOString()
       }
     });
 
-    toast(accepted ? "Qoşulmaya icazə verildi." : "Qoşulma rədd edildi.", accepted ? "success" : "error");
+    toast(
+      accepted ? "Qoşulmaya icazə verildi." : "Qoşulma rədd edildi.",
+      accepted ? "success" : "error"
+    );
   }
 };
