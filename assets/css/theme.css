@@ -904,21 +904,31 @@ select {
 }
 
 .admin-tabs button {
-  border: 1px solid var(--line);
-  background: rgba(1, 12, 22, 0.48);
-  color: var(--muted);
+  min-height: 34px;
+  padding: 7px 14px;
   border-radius: 999px;
-  padding: 9px 13px;
+  border: 1px solid rgba(125, 211, 252, 0.13);
+  background: rgba(1, 12, 22, 0.38);
+  color: var(--muted);
   font-size: 12px;
   font-weight: 650;
   cursor: pointer;
+  transition: 0.18s ease;
+}
+
+.admin-tabs button:hover {
+  color: var(--text-soft);
+  border-color: rgba(34, 211, 238, 0.28);
+  background: rgba(8, 28, 44, 0.66);
 }
 
 .admin-tabs button.active {
-  color: var(--cyan);
-  border-color: rgba(34, 211, 238, 0.42);
-  background: rgba(34, 211, 238, 0.08);
+  color: #67e8f9;
+  background: linear-gradient(135deg, rgba(16,185,129,.18), rgba(34,211,238,.18));
+  border-color: rgba(34,211,238,.42);
+  box-shadow: 0 0 18px rgba(34,211,238,.16);
 }
+
 
 .admin-table-wrap {
   overflow-x: auto;
@@ -1407,22 +1417,6 @@ select {
   font-size: 15px !important;
   font-weight: 850 !important;
   letter-spacing: 0.08em;
-}
-
-
-
-.admin-tabs button {
-  min-height: 38px;
-  padding: 8px 15px;
-  border-radius: 999px;
-  background: rgba(1, 12, 22, 0.52);
-}
-
-.admin-tabs button.active {
-  color: #67e8f9;
-  background: linear-gradient(135deg, rgba(16,185,129,.14), rgba(34,211,238,.14));
-  border-color: rgba(34,211,238,.34);
-  box-shadow: 0 0 14px rgba(34,211,238,.1);
 }
 
 /*=======================================================================================================*/
