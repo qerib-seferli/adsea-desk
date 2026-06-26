@@ -1,6 +1,7 @@
 let ADMIN_CTX = null;
 let ADMIN_TAB = "pending";
 let ADMIN_ROWS = [];
+let ADMIN_SEARCH = "";
 
 document.addEventListener("DOMContentLoaded", async () => {
   ADMIN_CTX = await Auth.requireAdmin();
@@ -24,21 +25,43 @@ async function loadAdmin() {
   renderAdmin();
 }
 
+
 function getFilteredRows() {
+  let rows = [];
+
   if (ADMIN_TAB === "pending") {
-    return ADMIN_ROWS.filter(p => !p.is_approved && !p.is_blocked);
+    rows = ADMIN_ROWS.filter(p => !p.is_approved && !p.is_blocked);
+  } else if (ADMIN_TAB === "active") {
+    rows = ADMIN_ROWS.filter(p => p.is_approved && !p.is_blocked);
+  } else if (ADMIN_TAB === "blocked") {
+    rows = ADMIN_ROWS.filter(p => p.is_blocked);
+  } else {
+    rows = ADMIN_ROWS;
   }
 
-  if (ADMIN_TAB === "active") {
-    return ADMIN_ROWS.filter(p => p.is_approved && !p.is_blocked);
-  }
+  const q = ADMIN_SEARCH.trim().toLowerCase();
 
-  if (ADMIN_TAB === "blocked") {
-    return ADMIN_ROWS.filter(p => p.is_blocked);
-  }
+  if (!q) return rows;
 
-  return ADMIN_ROWS;
+  return rows.filter(p => {
+    const text = `
+      ${p.first_name || ""}
+      ${p.last_name || ""}
+      ${p.patronymic || ""}
+      ${p.email || ""}
+      ${p.region || ""}
+      ${p.office_name || ""}
+      ${p.department || ""}
+      ${p.role_title || ""}
+      ${p.device_code || ""}
+      ${p.blocked_reason || ""}
+    `.toLowerCase();
+
+    return text.includes(q);
+  });
 }
+
+
 
 function renderAdmin() {
   const rows = getFilteredRows();
@@ -84,6 +107,18 @@ function renderAdmin() {
               <h2>Əməkdaşlar paneli</h2>
               <p>Qeydiyyat sorğuları, aktiv əməkdaşlar və bloklanmış hesablar.</p>
             </div>
+
+
+            <div class="admin-search-wrap">
+              <input
+                class="app-input admin-search-input"
+                id="admin-search"
+                value="${esc(ADMIN_SEARCH)}"
+                placeholder="Ad, soyad, email, rayon, idarə, vəzifə və ya cihaz kodu axtar..."
+                oninput="setAdminSearch(this.value)"
+              >
+            </div>
+
 
             <div class="admin-tabs">
               <button class="${ADMIN_TAB === "pending" ? "active" : ""}" onclick="setAdminTab('pending')">Gözləyən</button>
@@ -189,6 +224,11 @@ function statusBadge(p) {
 
 function setAdminTab(tab) {
   ADMIN_TAB = tab;
+  renderAdmin();
+}
+
+function setAdminSearch(value) {
+  ADMIN_SEARCH = value || "";
   renderAdmin();
 }
 
