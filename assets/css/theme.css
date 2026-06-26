@@ -1402,7 +1402,28 @@ select {
 }
 
 /*=======================================================================================================*/
+.history-item code,
+.code-yellow {
+  font-size: 15px !important;
+  font-weight: 850 !important;
+  letter-spacing: 0.08em;
+}
 
+
+
+.admin-tabs button {
+  min-height: 38px;
+  padding: 8px 15px;
+  border-radius: 999px;
+  background: rgba(1, 12, 22, 0.52);
+}
+
+.admin-tabs button.active {
+  color: #67e8f9;
+  background: linear-gradient(135deg, rgba(16,185,129,.14), rgba(34,211,238,.14));
+  border-color: rgba(34,211,238,.34);
+  box-shadow: 0 0 14px rgba(34,211,238,.1);
+}
 
 /*=======================================================================================================*/
 
