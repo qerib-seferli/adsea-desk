@@ -119,7 +119,12 @@ function renderApp(history) {
                 const otherIsTarget = h.operator_id === CURRENT.user.id;
                 const name = otherIsTarget ? h.target_employee_name : h.operator_name;
                 const code = otherIsTarget ? h.target_device_code : h.operator_device_code;
-                const person = ALL_PROFILES.find(x => x.device_code === code);
+                
+                const person = ALL_PROFILES.find(x =>
+                  x.device_code === code ||
+                  x.id === (otherIsTarget ? h.target_user_id : h.operator_id)
+                );
+                
                 const online = person ? Presence?.isOnline?.(person.id) : false;
               
                 return `
@@ -128,8 +133,9 @@ function renderApp(history) {
                       <span class="live-dot ${online ? "online" : "offline"}"></span>
                       <strong>${esc(name)}</strong>
                     </div>
-                    <span>${esc(h.target_region || "")} ${esc(h.target_office_name || "")}</span>
-                    <code>${esc(code)}</code>
+                      <span>${esc(person?.region || h.target_region || "")} ${esc(person?.office_name || h.target_office_name || "")}</span>
+                      <span>${esc(person?.role_title || h.target_role_title || "")}</span>
+                      <code>${esc(code)}</code>
                     <span>${esc(formatDate(h.started_at || h.connected_at))}</span>
                   </div>
                 `;
