@@ -24,12 +24,22 @@ async function loadApp() {
 
   ALL_PROFILES = profiles || [];
 
-    const { data: history, error: historyError } = await db
-      .from("connection_history")
-      .select("*")
-      .or(`operator_id.eq.${CURRENT.user.id},target_user_id.eq.${CURRENT.user.id}`)
-      .order("started_at", { ascending: false })
-      .limit(15);
+  const { data: rawHistory, error: historyError } = await db
+    .from("connection_history")
+    .select("*")
+    .or(`operator_id.eq.${CURRENT.user.id},target_user_id.eq.${CURRENT.user.id}`)
+    .eq("response_status", "accepted")
+    .order("started_at", { ascending: false })
+    .limit(50);
+  
+  const seenHistory = new Set();
+  
+  const history = (rawHistory || []).filter(h => {
+    const otherId = h.operator_id === CURRENT.user.id ? h.target_user_id : h.operator_id;
+    if (!otherId || seenHistory.has(otherId)) return false;
+    seenHistory.add(otherId);
+    return true;
+  }).slice(0, 8);
     
     if (historyError) {
       console.warn(historyError);
@@ -105,14 +115,25 @@ function renderApp(history) {
           <article class="card">
             <h2>Son daxil olduğunuz kompüterlər</h2>
             <div class="history-grid">
-              ${history.map(h => `
-                <div class="history-item" onclick="setTargetCode('${esc(h.target_device_code)}')">
-                  <strong>${esc(h.target_employee_name)}</strong>
-                  <span>${esc(h.target_details)}</span>
-                  <code>${esc(h.target_device_code)}</code>
-                  <span>${esc(formatDate(h.connected_at))}</span>
-                </div>
-              `).join("") || `<p>Hələ bağlantı keçmişi yoxdur.</p>`}
+              ${history.map(h => {
+                const otherIsTarget = h.operator_id === CURRENT.user.id;
+                const name = otherIsTarget ? h.target_employee_name : h.operator_name;
+                const code = otherIsTarget ? h.target_device_code : h.operator_device_code;
+                const person = ALL_PROFILES.find(x => x.device_code === code);
+                const online = person ? Presence?.isOnline?.(person.id) : false;
+              
+                return `
+                  <div class="history-item history-item-pro" onclick="setTargetCode('${esc(code)}')">
+                    <div class="history-title">
+                      <span class="live-dot ${online ? "online" : "offline"}"></span>
+                      <strong>${esc(name)}</strong>
+                    </div>
+                    <span>${esc(h.target_region || "")} ${esc(h.target_office_name || "")}</span>
+                    <code>${esc(code)}</code>
+                    <span>${esc(formatDate(h.started_at || h.connected_at))}</span>
+                  </div>
+                `;
+              }).join("") || `<p>Hələ bağlantı keçmişi yoxdur.</p>`}
             </div>
           </article>
         </section>
@@ -239,5 +260,10 @@ async function connectByCode() {
     return;
   }
 
+  if (target.id === CURRENT.user.id || target.device_code === CURRENT.profile.device_code) {
+  toast("Öz cihazınıza qoşulma sorğusu göndərmək mümkün deyil.", "error");
+  return;
+  }
+  
   await WebRTCControl.requestConnection(CURRENT.profile, target);
 }
