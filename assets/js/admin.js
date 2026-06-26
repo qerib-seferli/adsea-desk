@@ -77,15 +77,9 @@ function renderAdmin() {
           </div>
         </div>
 
-        <section class="user-box">
-          <h3>${esc(fullName(ADMIN_CTX.profile))}</h3>
-          <p>${esc(ADMIN_CTX.profile.role_title)}</p>
-
-          <div class="sidebar-actions sidebar-actions-3">
-            <button class="small-btn" onclick="go('/')">Ana panel</button>
-            <button class="small-btn" onclick="go('/profile/')">Hesabım</button>
-            <button class="small-btn danger-soft" onclick="Auth.logout()">Çıxış</button>
-          </div>
+        <section class="user-box compact-user-box">
+          <h3>Admin nəzarəti</h3>
+          <p>Hesablar və təhlükəsizlik idarəetməsi</p>
         </section>
 
         <div class="admin-stats">
@@ -96,9 +90,22 @@ function renderAdmin() {
       </aside>
 
       <main class="main">
-        <section class="topbar">
-          <div><span class="status-dot"></span>Admin rejimi aktivdir</div>
-          <div><b style="color:var(--cyan)">Əməkdaşların idarə edilməsi</b></div>
+        <section class="topbar topbar-pro">
+          <div class="top-status">
+            <span class="status-dot"></span>
+            Admin rejimi: <b>Aktiv</b>
+          </div>
+        
+          <div class="top-user">
+            <strong>${esc(fullName(ADMIN_CTX.profile))}</strong>
+            <span>${esc(ADMIN_CTX.profile.role_title)} · ${esc(ADMIN_CTX.profile.region)} / ${esc(ADMIN_CTX.profile.office_name)}</span>
+          </div>
+        
+          <div class="top-actions">
+            <button onclick="go('/')">Ana panel</button>
+            <button onclick="go('/profile/')">Hesabım</button>
+            <button class="logout" onclick="Auth.logout()">Çıxış</button>
+          </div>
         </section>
 
         <section class="card">
