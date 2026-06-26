@@ -3,7 +3,7 @@ function parseSignalPayload(payload) {
 
   let p = payload;
 
-  for (let i = 0; i < 2; i++) {
+  for (let i = 0; i < 3; i++) {
     if (typeof p === "string") {
       try {
         p = JSON.parse(p);
@@ -16,35 +16,59 @@ function parseSignalPayload(payload) {
   return p && typeof p === "object" ? p : {};
 }
 
-function notifySound() {
+let notifyAudioCtx = null;
+
+async function notifySound() {
   try {
-    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    notifyAudioCtx ||= new (window.AudioContext || window.webkitAudioContext)();
 
-    [0, 260, 520].forEach((delay) => {
+    if (notifyAudioCtx.state === "suspended") {
+      await notifyAudioCtx.resume();
+    }
+
+    const pattern = [0, 320, 640];
+
+    pattern.forEach((delay) => {
       setTimeout(() => {
-        const osc = ctx.createOscillator();
-        const gain = ctx.createGain();
+        const osc1 = notifyAudioCtx.createOscillator();
+        const osc2 = notifyAudioCtx.createOscillator();
+        const gain = notifyAudioCtx.createGain();
 
-        osc.type = "square";
-        osc.frequency.value = 1050;
-        gain.gain.value = 0.16;
+        osc1.type = "square";
+        osc2.type = "triangle";
 
-        osc.connect(gain);
-        gain.connect(ctx.destination);
+        osc1.frequency.value = 1180;
+        osc2.frequency.value = 1560;
 
-        osc.start();
-        setTimeout(() => osc.stop(), 180);
+        gain.gain.setValueAtTime(0.0001, notifyAudioCtx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.32, notifyAudioCtx.currentTime + 0.025);
+        gain.gain.exponentialRampToValueAtTime(0.0001, notifyAudioCtx.currentTime + 0.26);
+
+        osc1.connect(gain);
+        osc2.connect(gain);
+        gain.connect(notifyAudioCtx.destination);
+
+        osc1.start();
+        osc2.start();
+
+        osc1.stop(notifyAudioCtx.currentTime + 0.28);
+        osc2.stop(notifyAudioCtx.currentTime + 0.28);
       }, delay);
     });
-
-    setTimeout(() => ctx.close(), 1000);
-  } catch {}
+  } catch (err) {
+    console.warn("Notification sound failed:", err);
+  }
 }
 
 const WebRTCControl = {
   signalChannel: null,
 
   listen(profile) {
+    if (this.signalChannel) {
+      db.removeChannel(this.signalChannel);
+      this.signalChannel = null;
+    }
+
     this.signalChannel = db
       .channel(`signals-${profile.device_code}`)
       .on(
@@ -61,16 +85,31 @@ const WebRTCControl = {
   },
 
   async requestConnection(senderProfile, targetProfile) {
-    const payload = {
+    if (!senderProfile || !targetProfile) {
+      toast("Bağlantı məlumatları tam deyil.", "error");
+      return;
+    }
+
+    if (senderProfile.id === targetProfile.id || senderProfile.device_code === targetProfile.device_code) {
+      toast("Öz cihazınıza qoşulma sorğusu göndərmək mümkün deyil.", "error");
+      return;
+    }
+
+    const now = new Date().toISOString();
+
+    const requestPayload = {
+      sender_id: senderProfile.id,
       sender_device_code: senderProfile.device_code,
       sender_name: fullName(senderProfile),
       sender_region: senderProfile.region,
       sender_office: senderProfile.office_name,
       sender_department: senderProfile.department,
       sender_role: senderProfile.role_title,
+
+      target_id: targetProfile.id,
       target_name: fullName(targetProfile),
       target_device_code: targetProfile.device_code,
-      requested_at: new Date().toISOString()
+      requested_at: now
     };
 
     const { data: historyRow, error: historyError } = await db
@@ -79,16 +118,19 @@ const WebRTCControl = {
         operator_id: senderProfile.id,
         operator_name: fullName(senderProfile),
         operator_device_code: senderProfile.device_code,
+
         target_user_id: targetProfile.id,
         target_device_code: targetProfile.device_code,
         target_employee_name: fullName(targetProfile),
         target_details: profileDetails(targetProfile),
+
         target_region: targetProfile.region,
         target_office_name: targetProfile.office_name,
         target_department: targetProfile.department,
         target_role_title: targetProfile.role_title,
-        started_at: new Date().toISOString(),
-        connected_at: new Date().toISOString(),
+
+        started_at: now,
+        connected_at: now,
         status: "requested",
         response_status: "pending"
       })
@@ -101,16 +143,17 @@ const WebRTCControl = {
       return;
     }
 
-    payload.history_id = historyRow.id;
+    requestPayload.history_id = historyRow.id;
 
     const { error } = await db.from("signals").insert({
       sender_id: senderProfile.id,
       target_code: targetProfile.device_code,
       type: "connection-request",
-      payload: JSON.stringify(payload)
+      payload: JSON.stringify(requestPayload)
     });
 
     if (error) {
+      console.error(error);
       toast("Qoşulma sorğusu göndərilmədi.", "error");
       return;
     }
@@ -122,7 +165,7 @@ const WebRTCControl = {
     const p = parseSignalPayload(signal.payload);
 
     if (signal.type === "connection-request") {
-      notifySound();
+      await notifySound();
 
       showSystemNotification(
         "ADSEA Desk - Gələn qoşulma sorğusu",
@@ -143,6 +186,7 @@ const WebRTCControl = {
 
   showIncomingRequest(myProfile, signal) {
     const p = parseSignalPayload(signal.payload);
+
     let root = document.getElementById("modal-root");
 
     if (!root) {
@@ -157,7 +201,10 @@ const WebRTCControl = {
           <button class="modal-close" onclick="document.getElementById('modal-root').innerHTML=''">×</button>
 
           <div class="incoming-head">
-            <div class="incoming-avatar"><span>👤</span></div>
+            <div class="incoming-avatar">
+              <span>👤</span>
+            </div>
+
             <div>
               <h2>Gələn uzaqdan qoşulma sorğusu</h2>
               <p>Aşağıdakı əməkdaş sizin kompüterə qoşulmaq istəyir.</p>
@@ -165,12 +212,40 @@ const WebRTCControl = {
           </div>
 
           <div class="incoming-grid">
-            <div><b>Ad Soyad</b><span>${esc(p.sender_name)}</span></div>
-            <div><b>Rayon</b><span>${esc(p.sender_region)}</span></div>
-            <div><b>İdarə</b><span>${esc(p.sender_office)}</span></div>
-            <div><b>Struktur</b><span>${esc(p.sender_department)}</span></div>
-            <div><b>Vəzifə</b><span>${esc(p.sender_role)}</span></div>
-            <div><b>Cihaz kodu</b><span class="code-yellow big">${esc(p.sender_device_code)}</span></div>
+            <div>
+              <b>Ad Soyad</b>
+              <span>${esc(p.sender_name)}</span>
+            </div>
+
+            <div>
+              <b>Rayon</b>
+              <span>${esc(p.sender_region)}</span>
+            </div>
+
+            <div>
+              <b>İdarə</b>
+              <span>${esc(p.sender_office)}</span>
+            </div>
+
+            <div>
+              <b>Struktur</b>
+              <span>${esc(p.sender_department)}</span>
+            </div>
+
+            <div>
+              <b>Vəzifə</b>
+              <span>${esc(p.sender_role)}</span>
+            </div>
+
+            <div>
+              <b>Cihaz kodu</b>
+              <span class="code-yellow big">${esc(p.sender_device_code)}</span>
+            </div>
+          </div>
+
+          <div class="security-note">
+            <b>🔐 Təhlükəsizlik üçün</b>
+            <span>Yalnız tanıdığınız və gözlədiyiniz əməkdaşlara icazə verin. Şübhəli hallarda sorğunu rədd edin.</span>
           </div>
 
           <div class="modal-actions">
@@ -198,42 +273,54 @@ const WebRTCControl = {
       return;
     }
 
+    const my =
+      CURRENT?.profile ||
+      ADMIN_CTX?.profile ||
+      PROFILE_CTX?.profile ||
+      await Auth.profile((await Auth.user()).id);
+
     const originalPayload = parseSignalPayload(originalSignal.payload);
-    const historyId = originalPayload.history_id;
+    let finalHistoryId = originalPayload.history_id;
 
-    await db.from("signals").update({ is_read: true }).eq("id", signalId);
+    await db
+      .from("signals")
+      .update({ is_read: true })
+      .eq("id", signalId);
 
-    const my = CURRENT?.profile || ADMIN_CTX?.profile || PROFILE_CTX?.profile || await Auth.profile((await Auth.user()).id);
+    if (!finalHistoryId) {
+      const { data: latestPending, error: pendingError } = await db
+        .from("connection_history")
+        .select("id")
+        .eq("operator_device_code", senderDeviceCode)
+        .eq("target_device_code", my.device_code)
+        .eq("response_status", "pending")
+        .order("started_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
 
-let finalHistoryId = historyId;
+      if (pendingError) console.error(pendingError);
+      finalHistoryId = latestPending?.id;
+    }
 
-if (!finalHistoryId) {
-  const { data: latestPending } = await db
-    .from("connection_history")
-    .select("id")
-    .eq("operator_device_code", senderDeviceCode)
-    .eq("target_device_code", my.device_code)
-    .eq("response_status", "pending")
-    .order("started_at", { ascending: false })
-    .limit(1)
-    .maybeSingle();
+    if (finalHistoryId) {
+      const now = new Date().toISOString();
 
-  finalHistoryId = latestPending?.id;
-}
+      const { error: historyUpdateError } = await db
+        .from("connection_history")
+        .update({
+          response_status: accepted ? "accepted" : "rejected",
+          status: accepted ? "accepted" : "rejected",
+          ended_at: accepted ? null : now,
+          duration_seconds: 0
+        })
+        .eq("id", finalHistoryId);
 
-if (finalHistoryId) {
-  const { error: historyUpdateError } = await db
-    .from("connection_history")
-    .update({
-      response_status: accepted ? "accepted" : "rejected",
-      status: accepted ? "accepted" : "rejected",
-      ended_at: accepted ? null : new Date().toISOString(),
-      duration_seconds: 0
-    })
-    .eq("id", finalHistoryId);
-
-  if (historyUpdateError) console.error(historyUpdateError);
-}
+      if (historyUpdateError) {
+        console.error(historyUpdateError);
+        toast("Bağlantı statusu yenilənmədi.", "error");
+        return;
+      }
+    }
 
     await db.from("signals").insert({
       sender_id: my.id,
@@ -241,13 +328,16 @@ if (finalHistoryId) {
       type: "connection-response",
       payload: JSON.stringify({
         accepted,
-        history_id: historyId,
+        history_id: finalHistoryId,
         responder_name: fullName(my),
         responder_device_code: my.device_code,
         responded_at: new Date().toISOString()
       })
     });
 
-    toast(accepted ? "Qoşulmaya icazə verildi." : "Qoşulma rədd edildi.", accepted ? "success" : "error");
+    toast(
+      accepted ? "Qoşulmaya icazə verildi." : "Qoşulma rədd edildi.",
+      accepted ? "success" : "error"
+    );
   }
 };
