@@ -49,16 +49,9 @@ function renderApp(history) {
           </div>
         </div>
 
-        <section class="user-box">
-          <h3>${esc(fullName(p))}</h3>
-          <p>${esc(p.role_title)}</p>
-          <p>${esc(p.region)} | ${esc(p.office_name)}</p>
-
-          <div class="sidebar-actions sidebar-actions-3">
-            <button class="small-btn" onclick="go('/profile/')">Hesabım</button>
-            ${p.is_admin ? `<button class="small-btn admin" onclick="go('/admin/')">Admin panel</button>` : ""}
-            <button class="small-btn danger-soft" onclick="Auth.logout()">Çıxış</button>
-          </div>
+        <section class="user-box compact-user-box">
+          <h3>Əməkdaşlar</h3>
+          <p>Region / idarə üzrə canlı siyahı</p>
         </section>
 
         <input class="app-input" id="employee-search" placeholder="Rayon, idarə və ya əməkdaş axtar..." oninput="renderTree(this.value)">
@@ -67,9 +60,22 @@ function renderApp(history) {
       </aside>
 
       <main class="main">
-        <section class="topbar">
-          <div><span class="status-dot"></span>Bağlantı rejimi: <b style="color:var(--green)">Hazır</b></div>
-          <div>Sistem nəzarəti: <b style="color:var(--cyan)">ADSEA qorunma şəbəkəsi ✓</b></div>
+        <section class="topbar topbar-pro">
+          <div class="top-status">
+            <span class="status-dot"></span>
+            Bağlantı rejimi: <b>Hazır</b>
+          </div>
+        
+          <div class="top-user">
+            <strong>${esc(fullName(p))}</strong>
+            <span>${esc(p.role_title)} · ${esc(p.region)} / ${esc(p.office_name)}</span>
+          </div>
+        
+          <div class="top-actions">
+            <button onclick="go('/profile/')">Hesabım</button>
+            ${p.is_admin ? `<button onclick="go('/admin/')">Admin</button>` : ""}
+            <button class="logout" onclick="Auth.logout()">Çıxış</button>
+          </div>
         </section>
 
         <section class="center-grid">
