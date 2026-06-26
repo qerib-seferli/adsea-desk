@@ -1,7 +1,7 @@
 const SUPABASE_URL = "https://hdpdykooqirguwnojovb.supabase.co";
 const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhkcGR5a29vcWlyZ3V3bm9qb3ZiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI0MDkzNzMsImV4cCI6MjA5Nzk4NTM3M30.G_cqtqwd4d8bCYrNSeMgyQAYkogahUx9uKrRTrxOJoA";
 
-const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
   auth: {
     persistSession: true,
     autoRefreshToken: true,
@@ -57,17 +57,17 @@ function formatDate(value) {
 
 const Auth = {
   async session() {
-    const { data } = await supabase.auth.getSession();
+    const { data } = await db.auth.getSession();
     return data.session;
   },
 
   async user() {
-    const { data } = await supabase.auth.getUser();
+    const { data } = await db.auth.getUser();
     return data.user;
   },
 
   async profile(userId) {
-    const { data, error } = await supabase
+    const { data, error } = await db
       .from("profiles")
       .select("*")
       .eq("id", userId)
@@ -79,6 +79,7 @@ const Auth = {
 
   async requireApproved() {
     const session = await this.session();
+
     if (!session) {
       go("/login/");
       return null;
@@ -87,7 +88,7 @@ const Auth = {
     const profile = await this.profile(session.user.id);
 
     if (!profile.is_approved) {
-      await supabase.auth.signOut();
+      await db.auth.signOut();
       toast("Hesabınız hələ admin tərəfindən təsdiqlənməyib.", "warn");
       setTimeout(() => go("/login/"), 900);
       return null;
@@ -110,7 +111,7 @@ const Auth = {
   },
 
   async logout() {
-    await supabase.auth.signOut();
+    await db.auth.signOut();
     go("/login/");
   }
 };
