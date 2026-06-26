@@ -1,10 +1,13 @@
 let PROFILE_CTX = null;
 
 document.addEventListener("DOMContentLoaded", async () => {
-  PROFILE_CTX = await Auth.requireApproved();
-  if (!PROFILE_CTX) return;
+PROFILE_CTX = await Auth.requireApproved();
+if (!PROFILE_CTX) return;
 
-  renderProfile();
+Presence.start(PROFILE_CTX.profile);
+WebRTCControl.listen(PROFILE_CTX.profile);
+
+renderProfile();
 });
 
 function renderProfile() {
