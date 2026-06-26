@@ -99,6 +99,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       }
 
       const metadata = {
+        email: email,
         first_name: firstName,
         last_name: lastName,
         patronymic: patronymic,
