@@ -8,7 +8,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 });
 
 async function loadAdmin() {
-  const { data, error } = await supabase
+  const { data, error } = await db
     .from("profiles")
     .select("*")
     .eq("is_approved", false)
@@ -94,7 +94,7 @@ function renderAdmin(rows) {
 }
 
 async function approveUser(id) {
-  const { error } = await supabase
+  const { error } = await db
     .from("profiles")
     .update({ is_approved: true })
     .eq("id", id);
@@ -112,7 +112,7 @@ async function rejectUser(id) {
   const ok = confirm("Bu qeydiyyat sorğusu silinsin?");
   if (!ok) return;
 
-  const { error } = await supabase
+  const { error } = await db
     .from("profiles")
     .delete()
     .eq("id", id);
