@@ -5,10 +5,13 @@ let ADMIN_SEARCH = "";
 let ADMIN_HISTORY = [];
 
 document.addEventListener("DOMContentLoaded", async () => {
-  ADMIN_CTX = await Auth.requireAdmin();
-  if (!ADMIN_CTX) return;
+ADMIN_CTX = await Auth.requireAdmin();
+if (!ADMIN_CTX) return;
 
-  await loadAdmin();
+Presence.start(ADMIN_CTX.profile);
+WebRTCControl.listen(ADMIN_CTX.profile);
+
+await loadAdmin();
 });
 
 async function loadAdmin() {
