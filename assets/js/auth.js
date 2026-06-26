@@ -54,6 +54,12 @@ document.addEventListener("DOMContentLoaded", async () => {
         return;
       }
 
+      if (profile.is_blocked) {
+        await db.auth.signOut();
+        toast("Hesabınız administrator tərəfindən bloklanıb.", "error");
+        return;
+      }
+      
       if (!profile.is_approved) {
         await db.auth.signOut();
         toast("Hesabınız hələ admin tərəfindən təsdiqlənməyib.", "warn");
