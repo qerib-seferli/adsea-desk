@@ -1,12 +1,23 @@
 const Presence = {
   channel: null,
+  onlineIds: new Set(),
 
   start(profile) {
-    this.channel = supabase.channel("adsea-online-presence", {
+    this.channel = db.channel("adsea-online-presence", {
       config: {
         presence: {
           key: profile.id
         }
+      }
+    });
+
+    this.channel.on("presence", { event: "sync" }, () => {
+      const state = this.channel.presenceState();
+      this.onlineIds = new Set(Object.keys(state));
+
+      if (typeof renderTree === "function") {
+        const search = document.getElementById("employee-search")?.value || "";
+        renderTree(search);
       }
     });
 
@@ -23,5 +34,9 @@ const Presence = {
         });
       }
     });
+  },
+
+  isOnline(userId) {
+    return this.onlineIds.has(userId);
   }
 };
