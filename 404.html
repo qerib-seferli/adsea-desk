@@ -1,31 +1,16 @@
 <!DOCTYPE html>
 <html lang="az">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Səhifə Tapılmadı - 404</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link rel="stylesheet" href="style.css">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ADSEA Desk</title>
+  <link rel="stylesheet" href="/adsea-desk/assets/css/theme.css" />
 </head>
-<body class="bg-slate-950 text-slate-100 min-h-screen font-sans flex items-center justify-center p-4 text-center">
-
-    <div class="glass-panel max-w-md w-full rounded-2xl p-8 border-red-500/10 shadow-2xl">
-        <h1 class="text-6xl font-mono font-black text-red-500/80 tracking-widest mb-2 animate-pulse">404</h1>
-        <h2 class="text-sm font-bold text-slate-200 uppercase tracking-wider mb-2">Giriş Əngəlləndi və ya Səhifə Mövcud Deyil</h2>
-        <p class="text-xs text-slate-400 max-w-xs mx-auto mb-6 leading-relaxed">Axtardığınız daxili portal keçidi tapılmadı və ya URL sistemi tərəfindən təhlükəsizlik məqsədilə gizlədilib.</p>
-        
-        <button onclick="window.location.href='index'" class="inline-flex items-center space-x-2 bg-slate-900 hover:bg-slate-800 border border-slate-800 text-xs font-semibold px-5 py-2.5 rounded-xl transition text-cyan-400">
-            <i class="fa-solid fa-house-chimney text-[10px]"></i> <span>Ana Panelə Qayıt</span>
-        </button>
-    </div>
-
-    <script>
-        // Əgər kimsə səhvən .html ilə gəlibsə təmizləyib yenidən yönləndiririk
-        if (window.location.pathname.endsWith('.html')) {
-            const cleanUrl = window.location.pathname.replace(/\.html$/, '');
-            window.location.href = cleanUrl;
-        }
-    </script>
+<body class="auth-body">
+  <main class="auth-card">
+    <h1>404</h1>
+    <p>Səhifə tapılmadı və ya giriş icazəsi yoxdur.</p>
+    <a class="primary-link" href="/adsea-desk/">Ana səhifəyə qayıt</a>
+  </main>
 </body>
 </html>
