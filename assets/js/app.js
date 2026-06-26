@@ -24,12 +24,16 @@ async function loadApp() {
 
   ALL_PROFILES = profiles || [];
 
-  const { data: history } = await db
-    .from("connection_history")
-    .select("*")
-    .eq("operator_id", CURRENT.user.id)
-    .order("connected_at", { ascending: false })
-    .limit(15);
+    const { data: history, error: historyError } = await db
+      .from("connection_history")
+      .select("*")
+      .or(`operator_id.eq.${CURRENT.user.id},target_user_id.eq.${CURRENT.user.id}`)
+      .order("started_at", { ascending: false })
+      .limit(15);
+    
+    if (historyError) {
+      console.warn(historyError);
+    }
 
   renderApp(history || []);
 }
