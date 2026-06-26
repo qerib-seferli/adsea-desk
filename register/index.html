@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="az">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ADSEA Desk - Qeydiyyat</title>
+  <meta name="theme-color" content="#0891b2" />
+  <link rel="icon" href="../foto/Logo.png" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <link rel="stylesheet" href="../assets/css/theme.css" />
+</head>
+
+<body class="auth-body">
+  <main class="auth-card wide">
+    <img src="../foto/Logo.png" class="auth-logo" alt="ADSEA" />
+    <h1>Yeni əməkdaş qeydiyyatı</h1>
+    <p>Hesab yalnız admin təsdiqindən sonra aktiv olacaq</p>
+
+    <form id="register-form" class="auth-form grid-form">
+      <input id="first_name" required placeholder="Ad" />
+      <input id="last_name" required placeholder="Soyad" />
+      <input id="patronymic" required placeholder="Ata adı" />
+
+      <select id="region" required></select>
+      <input id="office_name" required placeholder="İdarə adı: Bərdə SMSİİ" />
+
+      <input id="department" required placeholder="Struktur bölmə" />
+      <input id="role_title" required placeholder="Vəzifə" />
+
+      <input id="email" type="email" required placeholder="Korporativ e-poçt" />
+      <input id="password" type="password" required placeholder="Şifrə" />
+      <input id="password2" type="password" required placeholder="Şifrənin təkrarı" />
+
+      <button type="submit">Təsdiq sorğusu göndər</button>
+    </form>
+
+    <div class="auth-links">
+      <a href="../login/">Artıq hesabınız var? Daxil olun</a>
+    </div>
+  </main>
+
+  <div id="toast-root"></div>
+
+  <script src="../assets/js/supabase.js"></script>
+  <script src="../assets/js/auth.js"></script>
+</body>
+</html>
