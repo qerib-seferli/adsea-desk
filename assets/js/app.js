@@ -1,0 +1,191 @@
+let CURRENT = null;
+let ALL_PROFILES = [];
+
+document.addEventListener("DOMContentLoaded", async () => {
+  CURRENT = await Auth.requireApproved();
+  if (!CURRENT) return;
+
+  await loadApp();
+  Presence.start(CURRENT.profile);
+  WebRTCControl.listen(CURRENT.profile);
+});
+
+async function loadApp() {
+  const { data: profiles, error } = await supabase
+    .from("profiles")
+    .select("*")
+    .eq("is_approved", true)
+    .order("region", { ascending: true });
+
+  if (error) {
+    toast("Əməkdaş siyahısı yüklənmədi.", "error");
+    return;
+  }
+
+  ALL_PROFILES = profiles || [];
+
+  const { data: history } = await supabase
+    .from("connection_history")
+    .select("*")
+    .eq("operator_id", CURRENT.user.id)
+    .order("connected_at", { ascending: false })
+    .limit(15);
+
+  renderApp(history || []);
+}
+
+function renderApp(history) {
+  const p = CURRENT.profile;
+  const app = document.getElementById("app");
+
+  app.innerHTML = `
+    <div class="shell">
+      <aside class="sidebar">
+        <div class="brand">
+          <img src="foto/Logo.png" alt="ADSEA">
+          <div>
+            <strong>ADSEA DESK</strong>
+            <span>Dövlət Su Ehtiyatları</span>
+          </div>
+        </div>
+
+        <section class="user-box">
+          <h3>${esc(fullName(p))}</h3>
+          <p>${esc(p.role_title)}</p>
+          <p>${esc(p.region)} | ${esc(p.office_name)}</p>
+
+          <div class="sidebar-actions">
+            ${p.is_admin ? `<button class="small-btn admin" onclick="go('/admin/')">Admin panel</button>` : ""}
+            <button class="small-btn" onclick="Auth.logout()">Çıxış</button>
+          </div>
+        </section>
+
+        <input class="app-input" id="employee-search" placeholder="Rayon, idarə və ya əməkdaş axtar..." oninput="renderTree(this.value)">
+
+        <div id="employee-tree" class="tree"></div>
+      </aside>
+
+      <main class="main">
+        <section class="topbar">
+          <div><span class="status-dot"></span>Bağlantı rejimi: <b style="color:var(--green)">Hazır</b></div>
+          <div>Sistem nəzarəti: <b style="color:var(--cyan)">ADSEA qorunma şəbəkəsi ✓</b></div>
+        </section>
+
+        <section class="center-grid">
+          <div class="action-grid">
+            <article class="card">
+              <h2>Bu cihazın ünvanı</h2>
+              <p>Agentliyin daxilindən kompüterinizə qoşulmaq istəyən əməkdaşa bu kodu təqdim edin.</p>
+              <div class="device-code">
+                <span>${esc(p.device_code)}</span>
+                <button class="small-btn" onclick="copyCode()">Kopyala</button>
+              </div>
+            </article>
+
+            <article class="card">
+              <h2>Uzaq iş masasına qoşulma</h2>
+              <p>Qoşulmaq və yardım göstərmək istədiyiniz kompüterin 9 rəqəmli kodunu daxil edin.</p>
+              <input class="app-input" id="target-code" maxlength="11" placeholder="000 000 000" oninput="maskCode(this)">
+              <br><br>
+              <button class="primary-btn" onclick="connectByCode()">Bağlantı qur</button>
+            </article>
+          </div>
+
+          <article class="card">
+            <h2>Son daxil olduğunuz kompüterlər</h2>
+            <div class="history-grid">
+              ${history.map(h => `
+                <div class="history-item" onclick="setTargetCode('${esc(h.target_device_code)}')">
+                  <strong>${esc(h.target_employee_name)}</strong>
+                  <span>${esc(h.target_details)}</span>
+                  <code>${esc(h.target_device_code)}</code>
+                  <span>${esc(formatDate(h.connected_at))}</span>
+                </div>
+              `).join("") || `<p>Hələ bağlantı keçmişi yoxdur.</p>`}
+            </div>
+          </article>
+        </section>
+
+        <footer class="footer-note">
+          Bu proqram yalnız Azərbaycan Dövlət Su Ehtiyatları Agentliyinin daxili audit və kibertəhlükəsizlik qaydalarına uyğun istifadə edilə bilər.
+        </footer>
+      </main>
+    </div>
+  `;
+
+  renderTree("");
+}
+
+function renderTree(search = "") {
+  const root = document.getElementById("employee-tree");
+  if (!root) return;
+
+  const q = search.toLowerCase().trim();
+
+  const list = ALL_PROFILES.filter(p => {
+    if (p.id === CURRENT.user.id) return false;
+    const text = `${p.first_name} ${p.last_name} ${p.patronymic} ${p.region} ${p.office_name} ${p.department} ${p.role_title} ${p.device_code}`.toLowerCase();
+    return text.includes(q);
+  });
+
+  const grouped = {};
+
+  list.forEach(p => {
+    grouped[p.region] ||= {};
+    grouped[p.region][p.office_name] ||= [];
+    grouped[p.region][p.office_name].push(p);
+  });
+
+  root.innerHTML = Object.entries(grouped).map(([region, offices]) => `
+    <details open>
+      <summary>${esc(region)}</summary>
+      ${Object.entries(offices).map(([office, people]) => `
+        <details class="office" open>
+          <summary>${esc(office)}</summary>
+          ${people.map(person => `
+            <div class="employee" onclick="setTargetCode('${esc(person.device_code)}')">
+              <div>
+                <strong>${esc(fullName(person))}</strong>
+                <span>${esc(person.department)} | ${esc(person.role_title)}</span>
+              </div>
+              <code>${esc(person.device_code)}</code>
+            </div>
+          `).join("")}
+        </details>
+      `).join("")}
+    </details>
+  `).join("") || `<p style="color:var(--muted);font-size:13px">Uyğun əməkdaş tapılmadı.</p>`;
+}
+
+function maskCode(input) {
+  let v = input.value.replace(/\D/g, "").slice(0, 9);
+  input.value = v.replace(/(\d{3})(?=\d)/g, "$1 ").trim();
+}
+
+function setTargetCode(code) {
+  const input = document.getElementById("target-code");
+  if (input) input.value = code;
+}
+
+async function copyCode() {
+  await navigator.clipboard.writeText(CURRENT.profile.device_code);
+  toast("Cihaz kodu kopyalandı.", "success");
+}
+
+async function connectByCode() {
+  const code = document.getElementById("target-code").value.trim();
+
+  if (!/^\d{3} \d{3} \d{3}$/.test(code)) {
+    toast("9 rəqəmli cihaz kodunu düzgün daxil edin.", "error");
+    return;
+  }
+
+  const target = ALL_PROFILES.find(p => p.device_code === code);
+
+  if (!target) {
+    toast("Bu cihaz kodu ilə əməkdaş tapılmadı.", "error");
+    return;
+  }
+
+  await WebRTCControl.requestConnection(CURRENT.profile, target);
+}
