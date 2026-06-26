@@ -85,7 +85,8 @@ const WebRTCControl = {
     }
 
     if (signal.type === "connection-response") {
-      const accepted = signal.payload?.accepted;
+      const p = parseSignalPayload(signal.payload);
+      const accepted = p.accepted;
 
       toast(
         accepted
@@ -97,7 +98,7 @@ const WebRTCControl = {
   },
 
 showIncomingRequest(myProfile, signal) {
-  const p = signal.payload || {};
+  const p = parseSignalPayload(signal.payload);
   const root = document.getElementById("modal-root");
 
   root.innerHTML = `
@@ -153,7 +154,8 @@ showIncomingRequest(myProfile, signal) {
       return;
     }
 
-    const historyId = originalSignal?.payload?.history_id;
+    const originalPayload = parseSignalPayload(originalSignal?.payload);
+    const historyId = originalPayload.history_id;
 
     await db
       .from("signals")
@@ -193,3 +195,18 @@ showIncomingRequest(myProfile, signal) {
     );
   }
 };
+
+
+function parseSignalPayload(payload) {
+  if (!payload) return {};
+  if (typeof payload === "string") {
+    try {
+      return JSON.parse(payload);
+    } catch {
+      return {};
+    }
+  }
+  return payload;
+}
+
+
