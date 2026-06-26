@@ -131,3 +131,37 @@ async function rejectUser(id) {
     }
   });
 }
+
+
+function showConfirmModal({ title, text, confirmText, cancelText, danger = false, onConfirm }) {
+  let root = document.getElementById("modal-root");
+
+  if (!root) {
+    root = document.createElement("div");
+    root.id = "modal-root";
+    document.body.appendChild(root);
+  }
+
+  root.innerHTML = `
+    <div class="modal-backdrop">
+      <section class="request-modal confirm-modal">
+        <h2>${esc(title)}</h2>
+        <p>${esc(text)}</p>
+
+        <div class="modal-actions">
+          <button class="small-btn" id="modal-cancel">${esc(cancelText || "Bağla")}</button>
+          <button class="${danger ? "danger-btn" : "primary-btn"}" id="modal-confirm">${esc(confirmText || "Təsdiqlə")}</button>
+        </div>
+      </section>
+    </div>
+  `;
+
+  document.getElementById("modal-cancel").onclick = () => {
+    root.innerHTML = "";
+  };
+
+  document.getElementById("modal-confirm").onclick = async () => {
+    root.innerHTML = "";
+    await onConfirm();
+  };
+}
