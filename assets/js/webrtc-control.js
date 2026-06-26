@@ -96,33 +96,47 @@ const WebRTCControl = {
     }
   },
 
-  showIncomingRequest(myProfile, signal) {
-    const p = signal.payload || {};
-    const root = document.getElementById("modal-root");
+showIncomingRequest(myProfile, signal) {
+  const p = signal.payload || {};
+  const root = document.getElementById("modal-root");
 
-    root.innerHTML = `
-      <div class="modal-backdrop">
-        <section class="request-modal">
-          <h2>Gələn uzaqdan qoşulma sorğusu</h2>
-          <p style="color:var(--muted)">Aşağıdakı əməkdaş sizin kompüterə qoşulmaq istəyir.</p>
+  root.innerHTML = `
+    <div class="modal-backdrop">
+      <section class="request-modal incoming-modal">
+        <button class="modal-close" onclick="document.getElementById('modal-root').innerHTML=''">×</button>
 
-          <div class="info-grid">
-            <div><b>Ad Soyad</b><span>${esc(p.sender_name)}</span></div>
-            <div><b>Şəhər / Rayon</b><span>${esc(p.sender_region)}</span></div>
-            <div><b>İdarə</b><span>${esc(p.sender_office)}</span></div>
-            <div><b>Struktur</b><span>${esc(p.sender_department)}</span></div>
-            <div><b>Vəzifə</b><span>${esc(p.sender_role)}</span></div>
-            <div><b>Cihaz kodu</b><span>${esc(p.sender_device_code)}</span></div>
+        <div class="incoming-head">
+          <div class="incoming-avatar">
+            <span>👤</span>
           </div>
-
-          <div class="modal-actions">
-            <button class="danger-btn" onclick="WebRTCControl.respond('${signal.id}', '${esc(p.sender_device_code)}', false)">Rədd et</button>
-            <button class="primary-btn" onclick="WebRTCControl.respond('${signal.id}', '${esc(p.sender_device_code)}', true)">İcazə ver</button>
+          <div>
+            <h2>Gələn uzaqdan qoşulma sorğusu</h2>
+            <p>Aşağıdakı əməkdaş sizin kompüterə qoşulmaq istəyir.</p>
           </div>
-        </section>
-      </div>
-    `;
-  },
+        </div>
+
+        <div class="incoming-grid">
+          <div><b>Ad Soyad</b><span>${esc(p.sender_name)}</span></div>
+          <div><b>Rayon</b><span>${esc(p.sender_region)}</span></div>
+          <div><b>İdarə</b><span>${esc(p.sender_office)}</span></div>
+          <div><b>Struktur</b><span>${esc(p.sender_department)}</span></div>
+          <div><b>Vəzifə</b><span>${esc(p.sender_role)}</span></div>
+          <div><b>Cihaz kodu</b><span class="code-yellow big">${esc(p.sender_device_code)}</span></div>
+        </div>
+
+        <div class="security-note">
+          <b>Təhlükəsizlik qeydi</b>
+          <span>Yalnız tanıdığınız və gözlədiyiniz əməkdaşlara icazə verin.</span>
+        </div>
+
+        <div class="modal-actions">
+          <button class="danger-btn" onclick="WebRTCControl.respond('${signal.id}', '${esc(p.sender_device_code)}', false)">Rədd et</button>
+          <button class="primary-btn" onclick="WebRTCControl.respond('${signal.id}', '${esc(p.sender_device_code)}', true)">İcazə ver</button>
+        </div>
+      </section>
+    </div>
+  `;
+},
 
   async respond(signalId, senderDeviceCode, accepted) {
     const modalRoot = document.getElementById("modal-root");
