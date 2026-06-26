@@ -161,11 +161,23 @@ function renderTree(search = "") {
   root.innerHTML =
     Object.entries(grouped).map(([region, offices]) => `
       <details>
-        <summary>${esc(region)}</summary>
+      
+        <summary>
+          <span>${esc(region)}</span>
+          <span class="tree-count">
+            ${Object.keys(offices).length}
+          </span>
+        </summary>
 
         ${Object.entries(offices).map(([office, people]) => `
           <details class="office">
-            <summary>${esc(office)}</summary>
+          
+            <summary>
+              <span>${esc(office)}</span>
+              <span class="tree-count">
+                ${people.length}
+              </span>
+            </summary>
 
             ${people.map(person => {
               const online = Presence?.isOnline?.(person.id);
