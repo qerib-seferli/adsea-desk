@@ -26,9 +26,11 @@ document.querySelector('#app').innerHTML = `
   <section class="agent-shell">
 
     <aside class="sidebar">
-      <div class="brand-logo">
-        <img src="/foto/Logo.png" alt="ADSEA">
-      </div>
+      <div class="brand">
+        <div class="brand-logo">
+          <img src="/foto/Logo.png" alt="ADSEA">
+        </div>
+        <div>
           <h1>ADSEA Desk</h1>
         </div>
       </div>
