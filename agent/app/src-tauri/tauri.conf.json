@@ -13,10 +13,10 @@
     "windows": [
       {
         "title": "ADSEA Desk",
-        "width": 1180,
-        "height": 760,
-        "minWidth": 980,
-        "minHeight": 680,
+        "width": 1280,
+        "height": 780,
+        "minWidth": 1100,
+        "minHeight": 720,
         "resizable": true,
         "fullscreen": false
       }
