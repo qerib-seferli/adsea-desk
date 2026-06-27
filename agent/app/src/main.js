@@ -361,13 +361,25 @@ function renderEmployeeTree() {
   });
 }
 
+
 function renderHistory() {
   const root = document.querySelector('#historyGrid');
   if (!root) return;
 
   const q = HISTORY_SEARCH.toLowerCase().trim();
+  const seen = new Set();
 
   const rows = HISTORY_ROWS.filter(h => {
+    const otherIsTarget = h.operator_id === CURRENT_PROFILE.id;
+    const otherId = otherIsTarget ? h.target_user_id : h.operator_id;
+    const code = otherIsTarget ? h.target_device_code : h.operator_device_code;
+
+    if (!otherId && !code) return false;
+    const uniqueKey = otherId || code;
+
+    if (seen.has(uniqueKey)) return false;
+    seen.add(uniqueKey);
+
     const text = `
       ${h.operator_name || ''}
       ${h.operator_device_code || ''}
@@ -387,10 +399,10 @@ function renderHistory() {
     const name = otherIsTarget ? h.target_employee_name : h.operator_name;
     const code = otherIsTarget ? h.target_device_code : h.operator_device_code;
     const otherId = otherIsTarget ? h.target_user_id : h.operator_id;
-    const region = otherIsTarget ? h.target_region : '';
-    const office = otherIsTarget ? h.target_office_name : '';
-    const department = otherIsTarget ? h.target_department : '';
-    const role = otherIsTarget ? h.target_role_title : '';
+    const region = h.target_region || '';
+    const office = h.target_office_name || '';
+    const department = h.target_department || '';
+    const role = h.target_role_title || '';
 
     return `
       <div class="history-item" data-code="${esc(code)}">
@@ -400,7 +412,7 @@ function renderHistory() {
         <small>${esc(department)} · ${esc(role)}</small>
         <code>${esc(code || '')}</code>
         <div class="history-time">
-          <span>Başlama: ${esc(formatDate(h.started_at || h.connected_at))}</span>
+          <span>${esc(formatDate(h.started_at || h.connected_at))}</span>
         </div>
       </div>
     `;
@@ -413,6 +425,7 @@ function renderHistory() {
     };
   });
 }
+
 
 function showDashboard() {
   document.querySelector('#agentPage').classList.remove('login-mode');
