@@ -6,7 +6,7 @@ on:
     paths:
       - "agent/app/**"
       - ".github/workflows/build-agent.yml"
-
+ 
 jobs:
   build-windows:
     runs-on: windows-latest
