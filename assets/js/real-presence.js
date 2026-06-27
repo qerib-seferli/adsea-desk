@@ -14,15 +14,7 @@ const Presence = {
     this.channel.on("presence", { event: "sync" }, () => {
       const state = this.channel.presenceState();
       this.onlineIds = new Set(Object.keys(state));
-
-      if (typeof renderTree === "function") {
-        const search = document.getElementById("employee-search")?.value || "";
-        renderTree(search);
-      }
-
-      if (typeof renderHistory === "function") {
-        renderHistory();
-      }
+      this.refreshUI();
     });
 
     this.channel.subscribe(async status => {
@@ -34,6 +26,7 @@ const Presence = {
           office_name: profile.office_name,
           role_title: profile.role_title,
           device_code: profile.device_code,
+          source: "web",
           online_at: new Date().toISOString()
         });
       }
@@ -42,5 +35,16 @@ const Presence = {
 
   isOnline(userId) {
     return this.onlineIds.has(userId);
+  },
+
+  refreshUI() {
+    if (typeof renderTree === "function") {
+      const search = document.getElementById("employee-search")?.value || "";
+      renderTree(search);
+    }
+
+    if (typeof renderHistory === "function") {
+      renderHistory();
+    }
   }
 };
