@@ -4,59 +4,92 @@ import './style.css';
 const SUPABASE_URL = 'https://hdpdykooqirguwnojovb.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhkcGR5a29vcWlyZ3V3bm9qb3ZiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI0MDkzNzMsImV4cCI6MjA5Nzk4NTM3M30.G_cqtqwd4d8bCYrNSeMgyQAYkogahUx9uKrRTrxOJoA';
 
-const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+  auth: {
+    persistSession: true,
+    autoRefreshToken: true,
+    detectSessionInUrl: false
+  }
+});
 
 let CURRENT_USER = null;
 let CURRENT_PROFILE = null;
 let SIGNAL_CHANNEL = null;
+let PRESENCE_CHANNEL = null;
 let HEARTBEAT_TIMER = null;
 
 document.querySelector('#app').innerHTML = `
   <main class="agent-page">
-    <section class="agent-card">
-      <div class="brand">
-        <div class="logo">AD</div>
-        <div>
-          <h1>ADSEA Desk</h1>
-          <p>Windows Təhlükəsiz Uzaqdan Dəstək Agenti</p>
+    <section class="agent-window">
+      <header class="agent-header">
+        <div class="brand-left">
+          <div class="logo-mark">AD</div>
+          <div>
+            <h1>ADSEA Desk</h1>
+            <p>Windows Təhlükəsiz Uzaqdan Dəstək Agenti</p>
+          </div>
         </div>
-      </div>
 
-      <div id="loginView">
-        <div class="security-banner">
-          Bu proqram yalnız səlahiyyətli əməkdaşlar tərəfindən istifadə olunmalıdır.
+        <div id="onlinePill" class="online-pill hidden">
+          <span></span>
+          ONLAYN
+        </div>
+      </header>
+
+      <section id="loginView" class="panel">
+        <div class="notice">
+          Yalnız səlahiyyətli əməkdaşlar istifadə edə bilər.
         </div>
 
         <label>Korporativ e-poçt</label>
-        <input id="email" type="email" placeholder="email@example.com" />
+        <input id="email" type="email" autocomplete="username" placeholder="ad.soyad@adsea.gov.az">
 
         <label>Şifrə</label>
-        <input id="password" type="password" placeholder="Şifrənizi daxil edin" />
+        <input id="password" type="password" autocomplete="current-password" placeholder="Şifrənizi daxil edin">
 
-        <button id="loginBtn">Təhlükəsiz giriş</button>
-      </div>
+        <button id="loginBtn" class="primary-btn">Təhlükəsiz giriş</button>
+      </section>
 
-      <div id="dashboardView" class="hidden">
-        <div class="profile-box">
-          <span>Aktiv istifadəçi</span>
-          <strong id="fullName">---</strong>
-          <small id="profileInfo">---</small>
+      <section id="dashboardView" class="hidden">
+        <div class="employee-card">
+          <div class="avatar">👤</div>
+          <div>
+            <strong id="fullName">---</strong>
+            <span id="profileInfo">---</span>
+          </div>
+          <div class="verified">✓</div>
         </div>
 
-        <div class="device-box">
+        <div class="code-card">
           <span>Bu kompüterin ADSEA kodu</span>
-          <strong id="deviceCode">---</strong>
+          <div>
+            <strong id="deviceCode">---</strong>
+            <button id="copyBtn">Kopyala</button>
+          </div>
         </div>
 
-        <div class="agent-state">
-          <span class="pulse"></span>
-          <b id="agentStateText">Agent xidməti aktivdir</b>
+        <div class="service-card">
+          <div>
+            <b><span class="live-dot"></span> Agent xidməti aktivdir</b>
+            <p>Bağlantı sorğuları real vaxtda izlənilir.</p>
+          </div>
+          <small id="lastSeen">indi</small>
         </div>
 
-        <button id="logoutBtn" class="secondary-btn">Çıxış</button>
-      </div>
+        <div class="activity-card">
+          <b>Son aktivlik</b>
+          <ul id="activityList"></ul>
+        </div>
+
+        <button id="logoutBtn" class="logout-btn">Çıxış</button>
+      </section>
 
       <div id="status" class="status">Agent hazırdır.</div>
+
+      <footer class="agent-footer">
+        <span>🔒 Təhlükəsiz bağlantı</span>
+        <span>ADSEA Daxili Sistem</span>
+      </footer>
     </section>
 
     <div id="modalRoot"></div>
@@ -67,6 +100,20 @@ const statusEl = document.querySelector('#status');
 
 function setStatus(text) {
   statusEl.textContent = text;
+  addActivity(text);
+}
+
+function addActivity(text) {
+  const list = document.querySelector('#activityList');
+  if (!list) return;
+
+  const item = document.createElement('li');
+  item.innerHTML = `<span>✓</span><div>${esc(text)}<small>${new Date().toLocaleString('az-AZ')}</small></div>`;
+  list.prepend(item);
+
+  while (list.children.length > 4) {
+    list.lastElementChild.remove();
+  }
 }
 
 function fullName(p) {
@@ -104,10 +151,7 @@ async function loadProfile(userId) {
     .eq('id', userId)
     .single();
 
-  if (error || !data) {
-    throw new Error('Profil məlumatı tapılmadı.');
-  }
-
+  if (error || !data) throw new Error('Profil məlumatı tapılmadı.');
   return data;
 }
 
@@ -132,6 +176,21 @@ async function markAgentOnline(profile) {
       },
       { onConflict: 'user_id,platform' }
     );
+
+  document.querySelector('#lastSeen').textContent = 'indi';
+}
+
+async function markAgentOffline() {
+  if (!CURRENT_PROFILE) return;
+
+  await supabase
+    .from('devices')
+    .update({
+      is_online: false,
+      last_seen: new Date().toISOString()
+    })
+    .eq('user_id', CURRENT_PROFILE.id)
+    .eq('platform', 'windows');
 }
 
 function startHeartbeat(profile) {
@@ -140,6 +199,36 @@ function startHeartbeat(profile) {
   HEARTBEAT_TIMER = setInterval(async () => {
     await markAgentOnline(profile);
   }, 15000);
+}
+
+function startPresence(profile) {
+  if (PRESENCE_CHANNEL) {
+    supabase.removeChannel(PRESENCE_CHANNEL);
+    PRESENCE_CHANNEL = null;
+  }
+
+  PRESENCE_CHANNEL = supabase.channel('adsea-online-presence', {
+    config: {
+      presence: {
+        key: profile.id
+      }
+    }
+  });
+
+  PRESENCE_CHANNEL.subscribe(async status => {
+    if (status === 'SUBSCRIBED') {
+      await PRESENCE_CHANNEL.track({
+        id: profile.id,
+        name: fullName(profile),
+        region: profile.region,
+        office_name: profile.office_name,
+        role_title: profile.role_title,
+        device_code: profile.device_code,
+        source: 'windows-agent',
+        online_at: new Date().toISOString()
+      });
+    }
+  });
 }
 
 function listenSignals(profile) {
@@ -167,18 +256,19 @@ async function handleSignal(signal) {
   const p = parsePayload(signal.payload);
 
   if (signal.type === 'connection-request') {
-    setStatus('Gələn uzaqdan qoşulma sorğusu var.');
+    setStatus('Gələn uzaqdan qoşulma sorğusu qəbul edildi.');
     showIncomingRequest(signal, p);
   }
 
   if (signal.type === 'connection-response') {
-    setStatus(p.accepted ? 'Qarşı tərəf icazə verdi.' : 'Qarşı tərəf sorğunu rədd etdi.');
+    setStatus(p.accepted ? 'Qarşı tərəf bağlantıya icazə verdi.' : 'Qarşı tərəf sorğunu rədd etdi.');
   }
 }
 
 function showDashboard(profile) {
   document.querySelector('#loginView').classList.add('hidden');
   document.querySelector('#dashboardView').classList.remove('hidden');
+  document.querySelector('#onlinePill').classList.remove('hidden');
 
   document.querySelector('#fullName').textContent = fullName(profile);
   document.querySelector('#profileInfo').textContent = profileDetails(profile);
@@ -191,10 +281,15 @@ function showIncomingRequest(signal, p) {
   modal.innerHTML = `
     <div class="modal-backdrop">
       <section class="request-modal">
-        <h2>Gələn uzaqdan qoşulma sorğusu</h2>
-        <p class="modal-desc">
-          Aşağıdakı əməkdaş bu kompüterə təhlükəsiz uzaqdan dəstək məqsədilə qoşulmaq istəyir.
-        </p>
+        <button class="modal-x" id="closeModal">×</button>
+
+        <div class="modal-title">
+          <div class="modal-icon">👤</div>
+          <div>
+            <h2>Gələn uzaqdan qoşulma sorğusu</h2>
+            <p>Əməkdaş bu kompüterə təhlükəsiz dəstək məqsədilə qoşulmaq istəyir.</p>
+          </div>
+        </div>
 
         <div class="request-grid">
           <div><b>Əməkdaş</b><span>${esc(p.sender_name || 'Naməlum')}</span></div>
@@ -202,11 +297,12 @@ function showIncomingRequest(signal, p) {
           <div><b>İdarə</b><span>${esc(p.sender_office || '-')}</span></div>
           <div><b>Struktur</b><span>${esc(p.sender_department || '-')}</span></div>
           <div><b>Vəzifə</b><span>${esc(p.sender_role || '-')}</span></div>
-          <div><b>Cihaz kodu</b><span>${esc(p.sender_device_code || '-')}</span></div>
+          <div><b>Cihaz kodu</b><span class="code-yellow">${esc(p.sender_device_code || '-')}</span></div>
         </div>
 
         <div class="security-note">
-          Yalnız tanıdığınız və gözlədiyiniz əməkdaşa icazə verin. Şübhəli halda sorğunu rədd edin.
+          <b>🔐 Təhlükəsizlik xəbərdarlığı</b>
+          <span>Yalnız tanıdığınız və gözlədiyiniz əməkdaşa icazə verin. Şübhəli halda sorğunu rədd edin.</span>
         </div>
 
         <div class="modal-actions">
@@ -217,6 +313,7 @@ function showIncomingRequest(signal, p) {
     </div>
   `;
 
+  document.querySelector('#closeModal').onclick = () => modal.innerHTML = '';
   document.querySelector('#rejectBtn').onclick = () => respondToRequest(signal, false);
   document.querySelector('#acceptBtn').onclick = () => respondToRequest(signal, true);
 }
@@ -260,28 +357,8 @@ async function respondToRequest(signal, accepted) {
   setStatus(accepted ? 'Qoşulmaya icazə verildi.' : 'Qoşulma rədd edildi.');
 }
 
-document.querySelector('#loginBtn').addEventListener('click', async () => {
-  const email = document.querySelector('#email').value.trim();
-  const password = document.querySelector('#password').value;
-
-  if (!email || !password) {
-    setStatus('Korporativ e-poçt və şifrə daxil edin.');
-    return;
-  }
-
-  setStatus('Kimlik yoxlanılır...');
-
-  const { data, error } = await supabase.auth.signInWithPassword({
-    email,
-    password
-  });
-
-  if (error || !data?.user) {
-    setStatus('Giriş rədd edildi. E-poçt və ya şifrə yanlışdır.');
-    return;
-  }
-
-  CURRENT_USER = data.user;
+async function loginWithSession(session) {
+  CURRENT_USER = session.user;
 
   try {
     CURRENT_PROFILE = await loadProfile(CURRENT_USER.id);
@@ -309,26 +386,59 @@ document.querySelector('#loginBtn').addEventListener('click', async () => {
     return;
   }
 
+  showDashboard(CURRENT_PROFILE);
   await markAgentOnline(CURRENT_PROFILE);
   startHeartbeat(CURRENT_PROFILE);
+  startPresence(CURRENT_PROFILE);
   listenSignals(CURRENT_PROFILE);
-  showDashboard(CURRENT_PROFILE);
 
   setStatus('ADSEA Desk Agent aktivdir və təhlükəsiz bağlantı sorğularını gözləyir.');
+}
+
+document.querySelector('#loginBtn').addEventListener('click', async () => {
+  const email = document.querySelector('#email').value.trim();
+  const password = document.querySelector('#password').value;
+
+  if (!email || !password) {
+    setStatus('Korporativ e-poçt və şifrə daxil edin.');
+    return;
+  }
+
+  setStatus('Kimlik yoxlanılır...');
+
+  const { data, error } = await supabase.auth.signInWithPassword({
+    email,
+    password
+  });
+
+  if (error || !data?.session) {
+    setStatus('Giriş rədd edildi. E-poçt və ya şifrə yanlışdır.');
+    return;
+  }
+
+  await loginWithSession(data.session);
+});
+
+document.querySelector('#copyBtn').addEventListener('click', async () => {
+  if (!CURRENT_PROFILE?.device_code) return;
+  await navigator.clipboard.writeText(CURRENT_PROFILE.device_code);
+  setStatus('Cihaz kodu kopyalandı.');
 });
 
 document.querySelector('#logoutBtn').addEventListener('click', async () => {
-  if (CURRENT_PROFILE) {
-    await supabase
-      .from('devices')
-      .update({
-        is_online: false,
-        last_seen: new Date().toISOString()
-      })
-      .eq('user_id', CURRENT_PROFILE.id)
-      .eq('platform', 'windows');
-  }
-
+  await markAgentOffline();
   await supabase.auth.signOut();
   location.reload();
 });
+
+window.addEventListener('beforeunload', () => {
+  markAgentOffline();
+});
+
+(async function boot() {
+  const { data } = await supabase.auth.getSession();
+
+  if (data?.session) {
+    await loginWithSession(data.session);
+  }
+})();
