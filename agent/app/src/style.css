@@ -754,3 +754,79 @@ summary span{
   content:"🕘 ";
   opacity:.65;
 }
+
+/*===================================================================*/
+/*===================================================================*/
+/* WEBRTC SCREEN VIEWER ============ Bir komputerdən digərinə qoşulma*/
+.remote-session{
+  position:fixed;
+  inset:0;
+  z-index:9999;
+  background:#020617;
+  display:grid;
+  grid-template-rows:64px 1fr;
+}
+
+.remote-topbar{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  padding:12px 18px;
+  background:rgba(15,23,42,.96);
+  border-bottom:1px solid rgba(148,163,184,.18);
+}
+
+.remote-topbar strong{
+  display:block;
+  font-size:16px;
+}
+
+.remote-topbar span{
+  display:block;
+  margin-top:3px;
+  color:#9fb6c9;
+  font-size:13px;
+}
+
+.remote-topbar button,
+.host-session-card button{
+  padding:11px 16px;
+  border-radius:13px;
+  background:rgba(239,68,68,.14);
+  border:1px solid rgba(239,68,68,.35);
+  color:#fecaca;
+  font-weight:700;
+}
+
+#remoteVideo{
+  width:100%;
+  height:100%;
+  background:#000;
+  object-fit:contain;
+}
+
+.host-session{
+  position:fixed;
+  inset:0;
+  z-index:9999;
+  display:grid;
+  place-items:center;
+  background:rgba(2,6,23,.72);
+}
+
+.host-session-card{
+  width:420px;
+  padding:22px;
+  border-radius:22px;
+  background:rgba(15,23,42,.98);
+  border:1px solid rgba(34,197,94,.28);
+  box-shadow:0 24px 80px rgba(0,0,0,.45);
+}
+
+.host-session-card h2{
+  margin:0 0 8px;
+}
+
+.host-session-card p{
+  margin-bottom:18px;
+}
