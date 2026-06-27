@@ -19,15 +19,13 @@ let ONLINE_IDS = new Set();
 let SIGNAL_CHANNEL = null;
 let PRESENCE_CHANNEL = null;
 let HEARTBEAT_TIMER = null;
-let HISTORY_PAGE = 1;
 let HISTORY_SEARCH = '';
-const HISTORY_PAGE_SIZE = 6;
 
 document.querySelector('#app').innerHTML = `
 <main class="agent-page login-mode" id="agentPage">
   <section class="agent-shell">
 
-    <aside class="sidebar" id="sidebar">
+    <aside class="sidebar">
       <div class="brand">
         <div class="brand-logo">AD</div>
         <div>
@@ -54,7 +52,7 @@ document.querySelector('#app').innerHTML = `
         </div>
       </div>
 
-      <div id="leftNetworkView" class="hidden">
+      <div id="leftNetworkView" class="left-after-login hidden">
         <section class="my-card">
           <span id="netDot" class="net-dot online"></span>
           <strong id="fullName">---</strong>
@@ -63,8 +61,10 @@ document.querySelector('#app').innerHTML = `
 
         <section class="my-code-card">
           <span>Bu kompüterin ADSEA kodu</span>
-          <strong id="deviceCode">---</strong>
-          <button id="copyBtn">Kopyala</button>
+          <div class="code-copy-row">
+            <strong id="deviceCode">---</strong>
+            <button id="copyBtn" title="Kopyala">⧉</button>
+          </div>
         </section>
 
         <input id="employeeSearch" class="search-input" placeholder="Rayon, idarə və ya əməkdaş axtar...">
@@ -77,51 +77,36 @@ document.querySelector('#app').innerHTML = `
 
     <section id="mainView" class="main-panel hidden">
       <div class="topbar">
-        <div>
+        <div class="topbar-status">
           <span id="connectionDot" class="net-dot online"></span>
           <b id="connectionText">Bağlantı rejimi: Hazır</b>
         </div>
         <p>Bu proqram yalnız Azərbaycan Dövlət Su Ehtiyatları Agentliyinin daxili audit və kibertəhlükəsizlik qaydalarına uyğun istifadə edilə bilər.</p>
       </div>
 
-      <div class="grid-two">
-        <article class="card">
-          <h2>Uzaq iş masasına qoşulma</h2>
-          <p>Qoşulmaq istədiyiniz əməkdaşın 9 rəqəmli ADSEA kodunu daxil edin.</p>
+      <article class="card connect-card">
+        <h2>Uzaq iş masasına qoşulma</h2>
+        <p>Qoşulmaq istədiyiniz əməkdaşın 9 rəqəmli ADSEA kodunu daxil edin.</p>
 
-          <div class="connect-row">
-            <input id="targetCode" maxlength="11" placeholder="000 000 000">
-            <button id="connectBtn" class="primary-btn">Sorğu göndər</button>
-          </div>
+        <div class="connect-row">
+          <input id="targetCode" maxlength="11" placeholder="000 000 000">
+          <button id="connectBtn" class="primary-btn">Sorğu göndər</button>
+        </div>
 
-          <div id="connectMessage" class="message info">
-            Sorğu göndərmək üçün əməkdaş kodunu daxil edin.
-          </div>
-        </article>
-
-        <article class="card status-card">
-          <h2>Agent xidməti</h2>
-          <div class="status-line">
-            <span class="net-dot online"></span>
-            <div>
-              <b>Agent xidməti aktivdir</b>
-              <p>Bağlantı sorğuları real vaxtda izlənilir.</p>
-            </div>
-          </div>
-        </article>
-      </div>
+        <div id="connectMessage" class="message info">
+          Sorğu göndərmək üçün əməkdaş kodunu daxil edin.
+        </div>
+      </article>
 
       <article class="card history-card">
         <div class="history-head">
           <div>
             <h2>Son daxil olduğunuz kompüterlər</h2>
-            <p>Əvvəl qoşulduğunuz əməkdaşları, rayonları, idarələri və cihaz kodlarını axtarın.</p>
           </div>
-          <input id="historySearch" class="search-input" placeholder="Ad, soyad, rayon, idarə, vəzifə və ya kod axtar...">
+          <input id="historySearch" class="search-input small-search" placeholder="Axtar...">
         </div>
 
         <div id="historyGrid" class="history-grid"></div>
-        <div id="historyPages" class="history-pages"></div>
       </article>
     </section>
 
@@ -158,15 +143,6 @@ function formatDate(value) {
   }).format(new Date(value));
 }
 
-function formatDuration(seconds) {
-  const s = Number(seconds || 0);
-  if (s <= 0) return '0 dəq';
-  const h = Math.floor(s / 3600);
-  const m = Math.floor((s % 3600) / 60);
-  if (h > 0) return `${h} saat ${m} dəq`;
-  return `${m || 1} dəq`;
-}
-
 function parsePayload(payload) {
   try {
     return typeof payload === 'object' ? payload : JSON.parse(payload || '{}');
@@ -189,6 +165,7 @@ function setConnectMessage(text, type = 'info') {
 
 function updateInternetState() {
   const online = navigator.onLine;
+
   document.querySelectorAll('#netDot, #connectionDot').forEach(dot => {
     dot.className = `net-dot ${online ? 'online' : 'offline'}`;
   });
@@ -228,7 +205,7 @@ async function loadHistory() {
     .or(`operator_id.eq.${CURRENT_PROFILE.id},target_user_id.eq.${CURRENT_PROFILE.id}`)
     .eq('response_status', 'accepted')
     .order('started_at', { ascending: false })
-    .limit(200);
+    .limit(120);
 
   HISTORY_ROWS = data || [];
   renderHistory();
@@ -352,15 +329,15 @@ function renderEmployeeTree() {
   });
 
   root.innerHTML = Object.entries(grouped).map(([region, offices]) => `
-    <details open>
+    <details>
       <summary>${esc(region)} <span>${Object.values(offices).flat().length}</span></summary>
 
       ${Object.entries(offices).map(([office, people]) => `
-        <details class="office" open>
+        <details class="office">
           <summary>${esc(office)} <span>${people.length}</span></summary>
 
           ${people.map(p => `
-            <div class="employee-item" data-code="${esc(p.device_code)}">
+            <div class="employee-item" data-code="${esc(p.device_code)}" data-online="${ONLINE_IDS.has(p.id) ? '1' : '0'}">
               <i class="${ONLINE_IDS.has(p.id) ? 'online' : 'offline'}"></i>
               <div>
                 <strong>${esc(fullName(p))}</strong>
@@ -377,15 +354,16 @@ function renderEmployeeTree() {
   root.querySelectorAll('.employee-item').forEach(item => {
     item.onclick = () => {
       document.querySelector('#targetCode').value = item.dataset.code;
-      setConnectMessage('Kod seçildi. Sorğu göndərə bilərsiniz.', 'info');
+      setConnectMessage(item.dataset.online === '1'
+        ? 'Kod seçildi. Sorğu göndərə bilərsiniz.'
+        : 'Seçilən əməkdaş hazırda offline-dır. Sorğu göndərilə bilməz.', item.dataset.online === '1' ? 'info' : 'error');
     };
   });
 }
 
 function renderHistory() {
   const root = document.querySelector('#historyGrid');
-  const pages = document.querySelector('#historyPages');
-  if (!root || !pages) return;
+  if (!root) return;
 
   const q = HISTORY_SEARCH.toLowerCase().trim();
 
@@ -404,29 +382,25 @@ function renderHistory() {
     return text.includes(q);
   });
 
-  const totalPages = Math.max(1, Math.ceil(rows.length / HISTORY_PAGE_SIZE));
-  if (HISTORY_PAGE > totalPages) HISTORY_PAGE = totalPages;
-
-  const start = (HISTORY_PAGE - 1) * HISTORY_PAGE_SIZE;
-  const pageRows = rows.slice(start, start + HISTORY_PAGE_SIZE);
-
-  root.innerHTML = pageRows.map(h => {
+  root.innerHTML = rows.map(h => {
     const otherIsTarget = h.operator_id === CURRENT_PROFILE.id;
     const name = otherIsTarget ? h.target_employee_name : h.operator_name;
     const code = otherIsTarget ? h.target_device_code : h.operator_device_code;
     const otherId = otherIsTarget ? h.target_user_id : h.operator_id;
+    const region = otherIsTarget ? h.target_region : '';
+    const office = otherIsTarget ? h.target_office_name : '';
+    const department = otherIsTarget ? h.target_department : '';
+    const role = otherIsTarget ? h.target_role_title : '';
 
     return `
       <div class="history-item" data-code="${esc(code)}">
         <span class="net-dot ${ONLINE_IDS.has(otherId) ? 'online' : 'offline'}"></span>
         <strong>${esc(name || 'Naməlum əməkdaş')}</strong>
-        <small>${esc(h.target_region || '')} ${esc(h.target_office_name || '')}</small>
-        <small>${esc(h.target_department || '')} · ${esc(h.target_role_title || '')}</small>
+        <small>${esc(region)} ${esc(office)}</small>
+        <small>${esc(department)} · ${esc(role)}</small>
         <code>${esc(code || '')}</code>
         <div class="history-time">
           <span>Başlama: ${esc(formatDate(h.started_at || h.connected_at))}</span>
-          <span>Bitmə: ${h.ended_at ? esc(formatDate(h.ended_at)) : 'Davam edir'}</span>
-          <span>Müddət: ${formatDuration(h.duration_seconds)}</span>
         </div>
       </div>
     `;
@@ -436,17 +410,6 @@ function renderHistory() {
     item.onclick = () => {
       document.querySelector('#targetCode').value = item.dataset.code;
       setConnectMessage('Keçmiş bağlantıdan kod seçildi. Sorğu göndərə bilərsiniz.', 'info');
-    };
-  });
-
-  pages.innerHTML = Array.from({ length: totalPages }, (_, i) => `
-    <button class="${HISTORY_PAGE === i + 1 ? 'active' : ''}" data-page="${i + 1}">${i + 1}</button>
-  `).join('');
-
-  pages.querySelectorAll('button').forEach(btn => {
-    btn.onclick = () => {
-      HISTORY_PAGE = Number(btn.dataset.page);
-      renderHistory();
     };
   });
 }
@@ -465,6 +428,11 @@ function showDashboard() {
 async function connectByCode() {
   const code = document.querySelector('#targetCode').value.trim();
 
+  if (!navigator.onLine) {
+    setConnectMessage('İnternet bağlantınız kəsilib. Sorğu göndərilə bilməz.', 'error');
+    return;
+  }
+
   if (!/^\d{3} \d{3} \d{3}$/.test(code)) {
     setConnectMessage('9 rəqəmli ADSEA kodunu düzgün daxil edin.', 'error');
     return;
@@ -481,6 +449,11 @@ async function connectByCode() {
 
   if (target.id === CURRENT_PROFILE.id) {
     setConnectMessage('Öz kompüterinizə qoşulma sorğusu göndərilə bilməz.', 'error');
+    return;
+  }
+
+  if (!ONLINE_IDS.has(target.id)) {
+    setConnectMessage(`${fullName(target)} hazırda offline-dır. Sorğu göndərilə bilməz.`, 'error');
     return;
   }
 
@@ -669,7 +642,6 @@ document.querySelector('#employeeSearch').addEventListener('input', renderEmploy
 
 document.querySelector('#historySearch').addEventListener('input', e => {
   HISTORY_SEARCH = e.target.value || '';
-  HISTORY_PAGE = 1;
   renderHistory();
 });
 
