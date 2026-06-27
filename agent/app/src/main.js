@@ -26,11 +26,10 @@ document.querySelector('#app').innerHTML = `
   <section class="agent-shell">
 
     <aside class="sidebar">
-      <div class="brand">
-        <div class="brand-logo">AD</div>
-        <div>
+      <div class="brand-logo">
+        <img src="./foto/Logo.png" alt="ADSEA">
+      </div>
           <h1>ADSEA Desk</h1>
-          <p>Windows Təhlükəsiz Uzaqdan Dəstək Agenti</p>
         </div>
       </div>
 
@@ -81,7 +80,7 @@ document.querySelector('#app').innerHTML = `
           <span id="connectionDot" class="net-dot online"></span>
           <b id="connectionText">Bağlantı rejimi: Hazır</b>
         </div>
-        <p>Bu proqram yalnız Azərbaycan Dövlət Su Ehtiyatları Agentliyinin daxili audit və kibertəhlükəsizlik qaydalarına uyğun istifadə edilə bilər.</p>
+        <p>Windows Təhlükəsiz Uzaqdan Dəstək Agenti</p>
       </div>
 
       <article class="card connect-card">
@@ -107,6 +106,9 @@ document.querySelector('#app').innerHTML = `
         </div>
 
         <div id="historyGrid" class="history-grid"></div>
+        <div class="policy-note">
+          Bu proqram yalnız Azərbaycan Dövlət Su Ehtiyatları Agentliyinin daxili audit və kibertəhlükəsizlik qaydalarına uyğun istifadə edilə bilər.
+        </div>
       </article>
     </section>
 
