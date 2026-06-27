@@ -10,19 +10,17 @@
     "frontendDist": "../dist"
   },
   "app": {
-     
-      "windows": [
-        {
-          "title": "ADSEA Desk",
-          "width": 1180,
-          "height": 760,
-          "minWidth": 980,
-          "minHeight": 680,
-          "resizable": true,
-          "fullscreen": false
-        }
-      ]
-    
+    "windows": [
+      {
+        "title": "ADSEA Desk",
+        "width": 1180,
+        "height": 760,
+        "minWidth": 980,
+        "minHeight": 680,
+        "resizable": true,
+        "fullscreen": false
+      }
+    ],
     "security": {
       "csp": null
     }
