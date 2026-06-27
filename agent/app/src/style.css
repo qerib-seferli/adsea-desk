@@ -337,3 +337,143 @@ summary span{
   border:1px solid rgba(239,68,68,.35);
   color:#fecaca;
 }
+
+
+/*===================================================================*/
+/* FINAL LAYOUT FIXES */
+
+.agent-page.login-mode .agent-shell {
+  align-items: center;
+  justify-items: center;
+}
+
+.agent-page.login-mode .sidebar {
+  height: auto;
+  min-height: auto;
+}
+
+.agent-page.login-mode .login-card {
+  padding: 18px;
+}
+
+.main-panel {
+  grid-template-rows: 62px 206px 1fr;
+}
+
+.topbar {
+  grid-template-columns: 210px 1fr;
+  min-height: 62px;
+}
+
+.topbar p {
+  white-space: normal;
+  overflow: visible;
+  text-overflow: initial;
+  line-height: 1.35;
+}
+
+.connect-card {
+  min-height: 206px;
+}
+
+.connect-row {
+  grid-template-columns: 1fr 180px;
+  align-items: stretch;
+}
+
+.connect-row input,
+.connect-row button {
+  height: 52px;
+  margin: 0;
+}
+
+.history-card {
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.history-head {
+  grid-template-columns: 1fr 220px;
+  min-height: 48px;
+}
+
+.history-head h2 {
+  white-space: nowrap;
+}
+
+.small-search {
+  height: 42px;
+  padding: 10px 13px;
+}
+
+.history-grid {
+  flex: 1;
+  grid-auto-columns: calc((100% - 36px) / 4);
+  align-items: start;
+  min-height: 215px;
+  max-height: 245px;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(34,197,94,.65) rgba(15,23,42,.8);
+}
+
+.history-grid::-webkit-scrollbar,
+.employee-tree::-webkit-scrollbar {
+  height: 10px;
+  width: 8px;
+}
+
+.history-grid::-webkit-scrollbar-track,
+.employee-tree::-webkit-scrollbar-track {
+  background: rgba(15,23,42,.8);
+  border-radius: 99px;
+}
+
+.history-grid::-webkit-scrollbar-thumb,
+.employee-tree::-webkit-scrollbar-thumb {
+  background: linear-gradient(135deg, #2563eb, #22c55e);
+  border-radius: 99px;
+}
+
+.history-item {
+  min-height: 178px;
+  max-height: 178px;
+}
+
+.history-item strong {
+  height: 42px;
+  overflow: hidden;
+  line-height: 1.28;
+}
+
+.history-item code {
+  font-size: 20px;
+  letter-spacing: 3px;
+}
+
+.history-time span {
+  font-size: 12px;
+}
+
+.employee-tree {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(34,197,94,.65) rgba(15,23,42,.8);
+}
+
+.logout-btn {
+  flex-shrink: 0;
+}
+
+.sidebar {
+  display: flex;
+  flex-direction: column;
+}
+
+.left-after-login {
+  flex: 1;
+  min-height: 0;
+}
+
+.brand {
+  flex-shrink: 0;
+}
