@@ -13,9 +13,9 @@
     "windows": [
       {
         "title": "ADSEA Desk",
-        "width": 1280,
+        "width": 1360,
         "height": 780,
-        "minWidth": 1100,
+        "minWidth": 1180,
         "minHeight": 720,
         "resizable": true,
         "fullscreen": false
