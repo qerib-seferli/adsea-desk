@@ -27,7 +27,7 @@ document.querySelector('#app').innerHTML = `
 
     <aside class="sidebar">
       <div class="brand-logo">
-        <img src="./foto/Logo.png" alt="ADSEA">
+        <img src="foto/Logo.png" alt="ADSEA">
       </div>
           <h1>ADSEA Desk</h1>
         </div>
