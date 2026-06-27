@@ -477,3 +477,66 @@ summary span{
 .brand {
   flex-shrink: 0;
 }
+
+
+
+/*===================================================================*/
+/* LAST FINAL POLISH */
+
+.history-grid {
+  grid-auto-columns: calc((100% - 24px) / 3);
+  max-height: 245px;
+}
+
+.history-item {
+  min-height: 178px;
+  max-height: 178px;
+  overflow: hidden;
+}
+
+.history-item strong {
+  height: 44px;
+  overflow: hidden;
+  line-height: 1.25;
+  word-break: break-word;
+}
+
+.history-item small {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  min-height: 38px;
+  max-height: 38px;
+  line-height: 1.35;
+  word-break: break-word;
+}
+
+.history-item code {
+  font-size: 21px;
+  letter-spacing: 4px;
+  white-space: nowrap;
+}
+
+.policy-note {
+  margin-top: 12px;
+  padding: 11px 14px;
+  border-radius: 14px;
+  background: rgba(14, 165, 233, .08);
+  border: 1px solid rgba(14, 165, 233, .18);
+  color: #8fa6ba;
+  font-size: 12px;
+  line-height: 1.35;
+  text-align: center;
+}
+
+.topbar p {
+  font-size: 14px;
+  color: #b9d7ee;
+  text-align: right;
+  white-space: nowrap;
+}
+
+.brand p {
+  display: none;
+}
