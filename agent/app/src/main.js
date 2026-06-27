@@ -5,7 +5,7 @@ const SUPABASE_URL = 'https://hdpdykooqirguwnojovb.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhkcGR5a29vcWlyZ3V3bm9qb3ZiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI0MDkzNzMsImV4cCI6MjA5Nzk4NTM3M30.G_cqtqwd4d8bCYrNSeMgyQAYkogahUx9uKrRTrxOJoA';
 
 
-/*========================================================================================================*/
+/*======================================================================================================*/
 
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
