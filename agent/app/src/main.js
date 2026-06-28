@@ -167,6 +167,40 @@ function parsePayload(payload) {
   }
 }
 
+
+let ALERT_AUDIO_CTX = null;
+
+async function playRequestAlert() {
+  try {
+    ALERT_AUDIO_CTX ||= new (window.AudioContext || window.webkitAudioContext)();
+
+    if (ALERT_AUDIO_CTX.state === 'suspended') {
+      await ALERT_AUDIO_CTX.resume();
+    }
+
+    [0, 220, 440, 760].forEach(delay => {
+      setTimeout(() => {
+        const osc = ALERT_AUDIO_CTX.createOscillator();
+        const gain = ALERT_AUDIO_CTX.createGain();
+
+        osc.type = 'square';
+        osc.frequency.value = 1250;
+
+        gain.gain.setValueAtTime(0.001, ALERT_AUDIO_CTX.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.28, ALERT_AUDIO_CTX.currentTime + 0.02);
+        gain.gain.exponentialRampToValueAtTime(0.001, ALERT_AUDIO_CTX.currentTime + 0.22);
+
+        osc.connect(gain);
+        gain.connect(ALERT_AUDIO_CTX.destination);
+
+        osc.start();
+        osc.stop(ALERT_AUDIO_CTX.currentTime + 0.24);
+      }, delay);
+    });
+  } catch {}
+}
+
+
 function setLoginMessage(text, type = 'info') {
   const el = document.querySelector('#loginMessage');
   el.className = `message ${type}`;
@@ -305,6 +339,7 @@ async function handleSignal(signal) {
   const p = parsePayload(signal.payload);
 
   if (signal.type === 'connection-request') {
+    await playRequestAlert();
     showRequest(signal, p);
     return;
   }
@@ -948,22 +983,41 @@ async function closeRemoteSession(sendNotice = true) {
 }
 
 
-  function getVideoPoint(e) {
-    const video = document.querySelector('#remoteVideo');
-    if (!video || !REMOTE_VIDEO_SIZE.width || !REMOTE_VIDEO_SIZE.height) return null;
-  
-    const rect = video.getBoundingClientRect();
-  
-    const xRatio = (e.clientX - rect.left) / rect.width;
-    const yRatio = (e.clientY - rect.top) / rect.height;
-  
-    if (xRatio < 0 || yRatio < 0 || xRatio > 1 || yRatio > 1) return null;
-  
-    return {
-      x: Math.round(xRatio * REMOTE_VIDEO_SIZE.width),
-      y: Math.round(yRatio * REMOTE_VIDEO_SIZE.height)
-    };
+
+function getVideoPoint(e) {
+  const video = document.querySelector('#remoteVideo');
+  if (!video || !REMOTE_VIDEO_SIZE.width || !REMOTE_VIDEO_SIZE.height) return null;
+
+  const rect = video.getBoundingClientRect();
+  const videoRatio = REMOTE_VIDEO_SIZE.width / REMOTE_VIDEO_SIZE.height;
+  const boxRatio = rect.width / rect.height;
+
+  let drawWidth = rect.width;
+  let drawHeight = rect.height;
+  let offsetX = 0;
+  let offsetY = 0;
+
+  if (boxRatio > videoRatio) {
+    drawHeight = rect.height;
+    drawWidth = drawHeight * videoRatio;
+    offsetX = (rect.width - drawWidth) / 2;
+  } else {
+    drawWidth = rect.width;
+    drawHeight = drawWidth / videoRatio;
+    offsetY = (rect.height - drawHeight) / 2;
   }
+
+  const x = e.clientX - rect.left - offsetX;
+  const y = e.clientY - rect.top - offsetY;
+
+  if (x < 0 || y < 0 || x > drawWidth || y > drawHeight) return null;
+
+  return {
+    x: Math.round((x / drawWidth) * REMOTE_VIDEO_SIZE.width),
+    y: Math.round((y / drawHeight) * REMOTE_VIDEO_SIZE.height)
+  };
+}
+
   
   let lastMouseSent = 0;
   
@@ -1003,22 +1057,64 @@ async function closeRemoteSession(sendNotice = true) {
       })
     });
   }
-  
-  async function sendKeyboardText(e) {
-    if (!ACTIVE_TARGET_CODE) return;
-    if (e.ctrlKey || e.altKey || e.metaKey) return;
-    if (!e.key || e.key.length !== 1) return;
-  
+
+
+async function sendKeyboardText(e) {
+  if (!ACTIVE_TARGET_CODE) return;
+
+  const allowedSpecial = [
+    'Enter', 'Backspace', 'Tab', 'Escape', 'Delete',
+    'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight',
+    'Home', 'End', 'PageUp', 'PageDown'
+  ];
+
+  if (e.ctrlKey && ['a', 'c', 'v', 'x', 'z'].includes(e.key.toLowerCase())) {
+    e.preventDefault();
+
     await supabase.from('signals').insert({
       sender_id: CURRENT_PROFILE.id,
       target_code: ACTIVE_TARGET_CODE,
       type: 'remote-input',
       payload: JSON.stringify({
-        action: 'key_text',
-        text: e.key
+        action: 'key_combo',
+        ctrl: true,
+        key: e.key.toLowerCase()
       })
     });
+
+    return;
   }
+
+  if (allowedSpecial.includes(e.key)) {
+    e.preventDefault();
+
+    await supabase.from('signals').insert({
+      sender_id: CURRENT_PROFILE.id,
+      target_code: ACTIVE_TARGET_CODE,
+      type: 'remote-input',
+      payload: JSON.stringify({
+        action: 'key_special',
+        key: e.key
+      })
+    });
+
+    return;
+  }
+
+  if (e.ctrlKey || e.altKey || e.metaKey) return;
+  if (!e.key || e.key.length !== 1) return;
+
+  await supabase.from('signals').insert({
+    sender_id: CURRENT_PROFILE.id,
+    target_code: ACTIVE_TARGET_CODE,
+    type: 'remote-input',
+    payload: JSON.stringify({
+      action: 'key_text',
+      text: e.key
+    })
+  });
+}
+
   
   async function handleRemoteInput(payload) {
     try {
