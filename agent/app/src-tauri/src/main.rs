@@ -3,13 +3,10 @@ use enigo::{Enigo, KeyboardControllable, MouseButton, MouseControllable};
 use serde_json::Value;
 
 
+
 #[tauri::command]
 fn remote_input(payload: Value) -> Result<(), String> {
-    let action = payload
-        .get("action")
-        .and_then(|v| v.as_str())
-        .unwrap_or("");
-
+    let action = payload.get("action").and_then(|v| v.as_str()).unwrap_or("");
     let mut enigo = Enigo::new();
 
     match action {
@@ -19,69 +16,84 @@ fn remote_input(payload: Value) -> Result<(), String> {
             enigo.mouse_move_to(x, y);
         }
 
-        "mouse_click" => {
+        "mouse_down" => {
             let x = payload.get("x").and_then(|v| v.as_i64()).unwrap_or(0) as i32;
             let y = payload.get("y").and_then(|v| v.as_i64()).unwrap_or(0) as i32;
-            let button = payload.get("button").and_then(|v| v.as_str()).unwrap_or("left");
-
+            let button = mouse_button(payload.get("button").and_then(|v| v.as_str()).unwrap_or("left"));
             enigo.mouse_move_to(x, y);
-
-            if button == "right" {
-                enigo.mouse_click(MouseButton::Right);
-            } else {
-                enigo.mouse_click(MouseButton::Left);
-            }
+            enigo.mouse_down(button);
         }
 
-        "key_text" => {
-            if let Some(text) = payload.get("text").and_then(|v| v.as_str()) {
-                enigo.key_sequence(text);
-            }
+        "mouse_up" => {
+            let x = payload.get("x").and_then(|v| v.as_i64()).unwrap_or(0) as i32;
+            let y = payload.get("y").and_then(|v| v.as_i64()).unwrap_or(0) as i32;
+            let button = mouse_button(payload.get("button").and_then(|v| v.as_str()).unwrap_or("left"));
+            enigo.mouse_move_to(x, y);
+            enigo.mouse_up(button);
         }
 
-        "key_special" => {
-            if let Some(key) = payload.get("key").and_then(|v| v.as_str()) {
-                match key {
-                    "Enter" => enigo.key_click(enigo::Key::Return),
-                    "Backspace" => enigo.key_click(enigo::Key::Backspace),
-                    "Tab" => enigo.key_click(enigo::Key::Tab),
-                    "Escape" => enigo.key_click(enigo::Key::Escape),
-                    "Delete" => enigo.key_click(enigo::Key::Delete),
-                    "ArrowUp" => enigo.key_click(enigo::Key::UpArrow),
-                    "ArrowDown" => enigo.key_click(enigo::Key::DownArrow),
-                    "ArrowLeft" => enigo.key_click(enigo::Key::LeftArrow),
-                    "ArrowRight" => enigo.key_click(enigo::Key::RightArrow),
-                    "Home" => enigo.key_click(enigo::Key::Home),
-                    "End" => enigo.key_click(enigo::Key::End),
-                    "PageUp" => enigo.key_click(enigo::Key::PageUp),
-                    "PageDown" => enigo.key_click(enigo::Key::PageDown),
-                    _ => {}
-                }
-            }
+        "mouse_double_click" => {
+            let x = payload.get("x").and_then(|v| v.as_i64()).unwrap_or(0) as i32;
+            let y = payload.get("y").and_then(|v| v.as_i64()).unwrap_or(0) as i32;
+            enigo.mouse_move_to(x, y);
+            enigo.mouse_click(MouseButton::Left);
+            enigo.mouse_click(MouseButton::Left);
         }
 
-        "key_combo" => {
-            let ctrl = payload.get("ctrl").and_then(|v| v.as_bool()).unwrap_or(false);
+        "mouse_wheel" => {
+            let delta = payload.get("delta_y").and_then(|v| v.as_i64()).unwrap_or(0) as i32;
+            enigo.mouse_scroll_y(delta);
+        }
+
+        "key_down" => {
             let key = payload.get("key").and_then(|v| v.as_str()).unwrap_or("");
+            enigo.key_down(map_key(key));
+        }
 
-            if ctrl {
-                enigo.key_down(enigo::Key::Control);
-                match key {
-                    "a" => enigo.key_click(enigo::Key::Layout('a')),
-                    "c" => enigo.key_click(enigo::Key::Layout('c')),
-                    "v" => enigo.key_click(enigo::Key::Layout('v')),
-                    "x" => enigo.key_click(enigo::Key::Layout('x')),
-                    "z" => enigo.key_click(enigo::Key::Layout('z')),
-                    _ => {}
-                }
-                enigo.key_up(enigo::Key::Control);
-            }
+        "key_up" => {
+            let key = payload.get("key").and_then(|v| v.as_str()).unwrap_or("");
+            enigo.key_up(map_key(key));
         }
 
         _ => {}
     }
 
     Ok(())
+}
+
+fn mouse_button(button: &str) -> MouseButton {
+    match button {
+        "right" => MouseButton::Right,
+        "middle" => MouseButton::Middle,
+        _ => MouseButton::Left,
+    }
+}
+
+fn map_key(key: &str) -> enigo::Key {
+    match key {
+        "Enter" => enigo::Key::Return,
+        "Backspace" => enigo::Key::Backspace,
+        "Tab" => enigo::Key::Tab,
+        "Escape" => enigo::Key::Escape,
+        "Delete" => enigo::Key::Delete,
+        "ArrowUp" => enigo::Key::UpArrow,
+        "ArrowDown" => enigo::Key::DownArrow,
+        "ArrowLeft" => enigo::Key::LeftArrow,
+        "ArrowRight" => enigo::Key::RightArrow,
+        "Home" => enigo::Key::Home,
+        "End" => enigo::Key::End,
+        "PageUp" => enigo::Key::PageUp,
+        "PageDown" => enigo::Key::PageDown,
+        "Shift" => enigo::Key::Shift,
+        "Control" => enigo::Key::Control,
+        "Alt" => enigo::Key::Alt,
+        "Meta" => enigo::Key::Meta,
+        " " => enigo::Key::Space,
+        _ => {
+            let ch = key.chars().next().unwrap_or(' ');
+            enigo::Key::Layout(ch)
+        }
+    }
 }
 
 
