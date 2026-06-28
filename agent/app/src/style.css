@@ -830,3 +830,29 @@ summary span{
 .host-session-card p{
   margin-bottom:18px;
 }
+
+
+/*===================================================================*/
+/* REMOTE SCREEN FULL VIEW FIX */
+.remote-session{
+  grid-template-rows:58px minmax(0,1fr) !important;
+  height:100vh !important;
+  overflow:hidden !important;
+}
+
+.remote-topbar{
+  height:58px !important;
+  min-height:58px !important;
+  padding:8px 18px !important;
+}
+
+#remoteVideo{
+  width:100% !important;
+  height:calc(100vh - 58px) !important;
+  max-height:calc(100vh - 58px) !important;
+  object-fit:contain !important;
+  display:block !important;
+  background:#000 !important;
+}
+
+/*===================================================================*/
