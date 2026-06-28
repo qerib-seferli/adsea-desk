@@ -20,6 +20,15 @@ let SIGNAL_CHANNEL = null;
 let PRESENCE_CHANNEL = null;
 let HEARTBEAT_TIMER = null;
 let HISTORY_SEARCH = '';
+let ACTIVE_PC = null;
+let ACTIVE_SESSION_ID = null;
+
+const RTC_CONFIG = {
+  iceServers: [
+    { urls: 'stun:stun.l.google.com:19302' },
+    { urls: 'stun:stun1.l.google.com:19302' }
+  ]
+};
 
 document.querySelector('#app').innerHTML = `
 <main class="agent-page login-mode" id="agentPage">
@@ -297,6 +306,21 @@ async function handleSignal(signal) {
     return;
   }
 
+  if (signal.type === 'webrtc-offer') {
+    await handleWebRTCOffer(signal, p);
+    return;
+  }
+  
+  if (signal.type === 'webrtc-answer') {
+    await handleWebRTCAnswer(signal, p);
+    return;
+  }
+  
+  if (signal.type === 'webrtc-ice') {
+    await handleWebRTCIce(signal, p);
+    return;
+  }
+  
   if (signal.type === 'connection-response') {
     if (p.accepted) {
       setConnectMessage(`${p.responder_name || 'Qarşı tərəf'} qoşulmaya icazə verdi. Növbəti mərhələdə ekran paylaşımı başlayacaq.`, 'success');
@@ -587,6 +611,10 @@ async function respond(signal, accepted) {
     })
   });
 
+    if (accepted) {
+    await startHostScreenShare(p);
+  }
+  
   await loadHistory();
 }
 
@@ -675,4 +703,184 @@ window.addEventListener('offline', updateInternetState);
   const { data } = await supabase.auth.getSession();
   if (data?.session) await login(data.session);
   updateInternetState();
+
+
+  
+    async function createPeer(sessionId, targetCode) {
+    const pc = new RTCPeerConnection(RTC_CONFIG);
+  
+    pc.onicecandidate = async event => {
+      if (event.candidate) {
+        await supabase.from('signals').insert({
+          sender_id: CURRENT_PROFILE.id,
+          target_code: targetCode,
+          type: 'webrtc-ice',
+          payload: JSON.stringify({
+            session_id: sessionId,
+            candidate: event.candidate
+          })
+        });
+      }
+    };
+  
+    ACTIVE_PC = pc;
+    ACTIVE_SESSION_ID = sessionId;
+  
+    return pc;
+  }
+  
+  async function startHostScreenShare(requestPayload) {
+    try {
+      const sessionId = requestPayload.history_id;
+      const targetCode = requestPayload.sender_device_code;
+  
+      setConnectMessage('Ekran paylaşımı başladılır...', 'info');
+  
+      const stream = await navigator.mediaDevices.getDisplayMedia({
+        video: true,
+        audio: false
+      });
+  
+      showHostSessionPanel(requestPayload, stream);
+  
+      const pc = await createPeer(sessionId, targetCode);
+  
+      stream.getTracks().forEach(track => {
+        pc.addTrack(track, stream);
+      });
+  
+      const offer = await pc.createOffer();
+      await pc.setLocalDescription(offer);
+  
+      await supabase.from('signals').insert({
+        sender_id: CURRENT_PROFILE.id,
+        target_code: targetCode,
+        type: 'webrtc-offer',
+        payload: JSON.stringify({
+          session_id: sessionId,
+          offer,
+          host_name: fullName(CURRENT_PROFILE),
+          host_device_code: CURRENT_PROFILE.device_code
+        })
+      });
+  
+      setConnectMessage('Ekran paylaşımı aktivdir.', 'success');
+  
+      stream.getVideoTracks()[0].onended = () => {
+        closeRemoteSession();
+      };
+    } catch (err) {
+      console.error(err);
+      setConnectMessage('Ekran paylaşımı başladılmadı. İcazə verilmədi və ya sistem dəstəkləmir.', 'error');
+    }
+  }
+  
+  async function handleWebRTCOffer(signal, payload) {
+    try {
+      const sessionId = payload.session_id;
+      const targetCode = signal.sender_id ? payload.host_device_code : '';
+  
+      showRemoteViewer(payload);
+  
+      const pc = await createPeer(sessionId, payload.host_device_code);
+  
+      pc.ontrack = event => {
+        const video = document.querySelector('#remoteVideo');
+        if (video) {
+          video.srcObject = event.streams[0];
+        }
+      };
+  
+      await pc.setRemoteDescription(new RTCSessionDescription(payload.offer));
+  
+      const answer = await pc.createAnswer();
+      await pc.setLocalDescription(answer);
+  
+      await supabase.from('signals').insert({
+        sender_id: CURRENT_PROFILE.id,
+        target_code: payload.host_device_code,
+        type: 'webrtc-answer',
+        payload: JSON.stringify({
+          session_id: sessionId,
+          answer,
+          viewer_name: fullName(CURRENT_PROFILE),
+          viewer_device_code: CURRENT_PROFILE.device_code
+        })
+      });
+  
+      setConnectMessage('Uzaq ekran bağlantısı qurulur...', 'success');
+    } catch (err) {
+      console.error(err);
+      setConnectMessage('Uzaq ekran bağlantısı qurulmadı.', 'error');
+    }
+  }
+  
+  async function handleWebRTCAnswer(signal, payload) {
+    try {
+      if (!ACTIVE_PC) return;
+      await ACTIVE_PC.setRemoteDescription(new RTCSessionDescription(payload.answer));
+      setConnectMessage('Qarşı tərəf ekrana qoşuldu.', 'success');
+    } catch (err) {
+      console.error(err);
+    }
+  }
+  
+  async function handleWebRTCIce(signal, payload) {
+    try {
+      if (!ACTIVE_PC || !payload.candidate) return;
+      await ACTIVE_PC.addIceCandidate(new RTCIceCandidate(payload.candidate));
+    } catch (err) {
+      console.warn('ICE candidate error:', err);
+    }
+  }
+  
+  function showRemoteViewer(payload) {
+    document.querySelector('#modalRoot').innerHTML = `
+      <div class="remote-session">
+        <div class="remote-topbar">
+          <div>
+            <strong>Uzaq ekran bağlantısı</strong>
+            <span>${esc(payload.host_name || 'Qarşı tərəf')} · ${esc(payload.host_device_code || '')}</span>
+          </div>
+          <button id="closeRemoteBtn">Bağlantını bitir</button>
+        </div>
+  
+        <video id="remoteVideo" autoplay playsinline></video>
+      </div>
+    `;
+  
+    document.querySelector('#closeRemoteBtn').onclick = closeRemoteSession;
+  }
+  
+  function showHostSessionPanel(payload, stream) {
+    document.querySelector('#modalRoot').innerHTML = `
+      <div class="host-session">
+        <div class="host-session-card">
+          <h2>Ekran paylaşımı aktivdir</h2>
+          <p>${esc(payload.sender_name || 'Əməkdaş')} sizin ekranınıza qoşulur.</p>
+          <button id="stopShareBtn">Paylaşımı dayandır</button>
+        </div>
+      </div>
+    `;
+  
+    document.querySelector('#stopShareBtn').onclick = () => {
+      stream.getTracks().forEach(t => t.stop());
+      closeRemoteSession();
+    };
+  }
+  
+  function closeRemoteSession() {
+    if (ACTIVE_PC) {
+      ACTIVE_PC.close();
+      ACTIVE_PC = null;
+    }
+  
+    ACTIVE_SESSION_ID = null;
+  
+    const root = document.querySelector('#modalRoot');
+    if (root) root.innerHTML = '';
+  
+    setConnectMessage('Bağlantı sonlandırıldı.', 'info');
+  }
+  
 })();
