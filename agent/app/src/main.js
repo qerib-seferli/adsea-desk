@@ -1,5 +1,6 @@
 import { createClient } from '@supabase/supabase-js';
 import './style.css'; 
+import { invoke } from '@tauri-apps/api/core';
 
 const SUPABASE_URL = 'https://hdpdykooqirguwnojovb.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhkcGR5a29vcWlyZ3V3bm9qb3ZiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI0MDkzNzMsImV4cCI6MjA5Nzk4NTM3M30.G_cqtqwd4d8bCYrNSeMgyQAYkogahUx9uKrRTrxOJoA';
@@ -22,6 +23,8 @@ let HEARTBEAT_TIMER = null;
 let HISTORY_SEARCH = '';
 let ACTIVE_PC = null;
 let ACTIVE_SESSION_ID = null;
+let ACTIVE_TARGET_CODE = null;
+let REMOTE_VIDEO_SIZE = { width: 0, height: 0 };
 
 const RTC_CONFIG = {
   iceServers: [
@@ -318,6 +321,17 @@ async function handleSignal(signal) {
   
   if (signal.type === 'webrtc-ice') {
     await handleWebRTCIce(signal, p);
+    return;
+  }
+
+  if (signal.type === 'session-ended') {
+    closeRemoteSession(false);
+    setConnectMessage('Qarşı tərəf bağlantını sonlandırdı.', 'info');
+    return;
+  }
+  
+  if (signal.type === 'remote-input') {
+    await handleRemoteInput(p);
     return;
   }
   
@@ -721,6 +735,7 @@ async function createPeer(sessionId, targetCode) {
 
   ACTIVE_PC = pc;
   ACTIVE_SESSION_ID = sessionId;
+  ACTIVE_TARGET_CODE = targetCode;
 
   return pc;
 }
@@ -738,7 +753,11 @@ async function startHostScreenShare(requestPayload) {
     }
 
     const stream = await navigator.mediaDevices.getDisplayMedia({
-      video: true,
+      video: {
+        frameRate: { ideal: 30, max: 30 },
+        width: { ideal: 1920 },
+        height: { ideal: 1080 }
+      },
       audio: false
     });
 
@@ -760,8 +779,12 @@ async function startHostScreenShare(requestPayload) {
       payload: JSON.stringify({
         session_id: sessionId,
         offer,
-        host_name: fullName(CURRENT_PROFILE),
-        host_device_code: CURRENT_PROFILE.device_code
+      host_name: fullName(CURRENT_PROFILE),
+      host_device_code: CURRENT_PROFILE.device_code,
+      host_region: CURRENT_PROFILE.region,
+      host_office: CURRENT_PROFILE.office_name,
+      host_department: CURRENT_PROFILE.department,
+      host_role: CURRENT_PROFILE.role_title
       })
     });
 
@@ -834,23 +857,47 @@ async function handleWebRTCIce(signal, payload) {
   }
 }
 
-function showRemoteViewer(payload) {
-  document.querySelector('#modalRoot').innerHTML = `
-    <div class="remote-session">
-      <div class="remote-topbar">
-        <div>
-          <strong>Uzaq ekran bağlantısı</strong>
-          <span>${esc(payload.host_name || 'Qarşı tərəf')} · ${esc(payload.host_device_code || '')}</span>
+
+  function showRemoteViewer(payload) {
+    document.querySelector('#modalRoot').innerHTML = `
+      <div class="remote-session">
+        <div class="remote-topbar">
+          <div>
+            <strong>Uzaq ekran bağlantısı</strong>
+            <span>
+              ${esc(payload.host_name || 'Qarşı tərəf')} ·
+              ${esc(payload.host_region || '')} ${esc(payload.host_office || '')} ·
+              ${esc(payload.host_department || '')} - ${esc(payload.host_role || '')} ·
+              ${esc(payload.host_device_code || '')}
+            </span>
+          </div>
+          <button id="closeRemoteBtn">Bağlantını bitir</button>
         </div>
-        <button id="closeRemoteBtn">Bağlantını bitir</button>
+  
+        <video id="remoteVideo" autoplay playsinline></video>
       </div>
+    `;
+  
+    const video = document.querySelector('#remoteVideo');
+  
+    video.addEventListener('loadedmetadata', () => {
+      REMOTE_VIDEO_SIZE.width = video.videoWidth;
+      REMOTE_VIDEO_SIZE.height = video.videoHeight;
+    });
+  
+    video.addEventListener('mousemove', sendMouseMove);
+    video.addEventListener('click', sendMouseClick);
+    video.addEventListener('contextmenu', e => {
+      e.preventDefault();
+      sendMouseClick(e, 'right');
+    });
+  
+    document.addEventListener('keydown', sendKeyboardText);
+  
+    document.querySelector('#closeRemoteBtn').onclick = () => closeRemoteSession(true);
+  }
 
-      <video id="remoteVideo" autoplay playsinline></video>
-    </div>
-  `;
 
-  document.querySelector('#closeRemoteBtn').onclick = closeRemoteSession;
-}
 
 function showHostSessionPanel(payload, stream) {
   document.querySelector('#modalRoot').innerHTML = `
@@ -869,13 +916,30 @@ function showHostSessionPanel(payload, stream) {
   };
 }
 
-function closeRemoteSession() {
+
+async function closeRemoteSession(sendNotice = true) {
+  if (sendNotice && ACTIVE_TARGET_CODE) {
+    await supabase.from('signals').insert({
+      sender_id: CURRENT_PROFILE.id,
+      target_code: ACTIVE_TARGET_CODE,
+      type: 'session-ended',
+      payload: JSON.stringify({
+        session_id: ACTIVE_SESSION_ID,
+        ended_by: fullName(CURRENT_PROFILE),
+        ended_at: new Date().toISOString()
+      })
+    });
+  }
+
   if (ACTIVE_PC) {
     ACTIVE_PC.close();
     ACTIVE_PC = null;
   }
 
   ACTIVE_SESSION_ID = null;
+  ACTIVE_TARGET_CODE = null;
+
+  document.removeEventListener('keydown', sendKeyboardText);
 
   const root = document.querySelector('#modalRoot');
   if (root) root.innerHTML = '';
@@ -883,8 +947,91 @@ function closeRemoteSession() {
   setConnectMessage('Bağlantı sonlandırıldı.', 'info');
 }
 
-(async () => {
-  const { data } = await supabase.auth.getSession();
-  if (data?.session) await login(data.session);
-  updateInternetState();
+
+  function getVideoPoint(e) {
+    const video = document.querySelector('#remoteVideo');
+    if (!video || !REMOTE_VIDEO_SIZE.width || !REMOTE_VIDEO_SIZE.height) return null;
+  
+    const rect = video.getBoundingClientRect();
+  
+    const xRatio = (e.clientX - rect.left) / rect.width;
+    const yRatio = (e.clientY - rect.top) / rect.height;
+  
+    if (xRatio < 0 || yRatio < 0 || xRatio > 1 || yRatio > 1) return null;
+  
+    return {
+      x: Math.round(xRatio * REMOTE_VIDEO_SIZE.width),
+      y: Math.round(yRatio * REMOTE_VIDEO_SIZE.height)
+    };
+  }
+  
+  let lastMouseSent = 0;
+  
+  async function sendMouseMove(e) {
+    const now = Date.now();
+    if (now - lastMouseSent < 35) return;
+    lastMouseSent = now;
+  
+    const point = getVideoPoint(e);
+    if (!point || !ACTIVE_TARGET_CODE) return;
+  
+    await supabase.from('signals').insert({
+      sender_id: CURRENT_PROFILE.id,
+      target_code: ACTIVE_TARGET_CODE,
+      type: 'remote-input',
+      payload: JSON.stringify({
+        action: 'mouse_move',
+        x: point.x,
+        y: point.y
+      })
+    });
+  }
+  
+  async function sendMouseClick(e, button = 'left') {
+    const point = getVideoPoint(e);
+    if (!point || !ACTIVE_TARGET_CODE) return;
+  
+    await supabase.from('signals').insert({
+      sender_id: CURRENT_PROFILE.id,
+      target_code: ACTIVE_TARGET_CODE,
+      type: 'remote-input',
+      payload: JSON.stringify({
+        action: 'mouse_click',
+        button,
+        x: point.x,
+        y: point.y
+      })
+    });
+  }
+  
+  async function sendKeyboardText(e) {
+    if (!ACTIVE_TARGET_CODE) return;
+    if (e.ctrlKey || e.altKey || e.metaKey) return;
+    if (!e.key || e.key.length !== 1) return;
+  
+    await supabase.from('signals').insert({
+      sender_id: CURRENT_PROFILE.id,
+      target_code: ACTIVE_TARGET_CODE,
+      type: 'remote-input',
+      payload: JSON.stringify({
+        action: 'key_text',
+        text: e.key
+      })
+    });
+  }
+  
+  async function handleRemoteInput(payload) {
+    try {
+      await invoke('remote_input', { payload });
+    } catch (err) {
+      console.error('remote_input failed:', err);
+    }
+  }
+
+  /*Bu blok faylın ən axırında tam belə bağlanmalıdır:*/
+  (async () => {
+    const { data } = await supabase.auth.getSession();
+    if (data?.session) await login(data.session);
+    updateInternetState();
+  
 })();
