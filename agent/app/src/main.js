@@ -787,23 +787,39 @@ async function startHostScreenShare(requestPayload) {
       return;
     }
 
+    
+    /*===========================================================*/
+    /*ekran paylaşımı keyfiyyəti*/
     const stream = await navigator.mediaDevices.getDisplayMedia({
       video: {
-        frameRate: { ideal: 30, max: 30 },
-        width: { ideal: 1920 },
-        height: { ideal: 1080 }
+        frameRate: { ideal: 45, max: 60 },
+        width: { ideal: 1920, max: 1920 },
+        height: { ideal: 1080, max: 1080 }
       },
       audio: false
     });
+    /*===========================================================*/
 
+    
     showHostSessionPanel(requestPayload, stream);
 
     const pc = await createPeer(sessionId, targetCode);
 
+    
     stream.getTracks().forEach(track => {
-      pc.addTrack(track, stream);
+      const sender = pc.addTrack(track, stream);
+    
+      const params = sender.getParameters();
+      params.encodings = [{
+        maxBitrate: 6500000,
+        maxFramerate: 45,
+        priority: 'high'
+      }];
+    
+      sender.setParameters(params).catch(() => {});
     });
 
+    
     const offer = await pc.createOffer();
     await pc.setLocalDescription(offer);
 
@@ -906,7 +922,13 @@ async function handleWebRTCIce(signal, payload) {
               ${esc(payload.host_device_code || '')}
             </span>
           </div>
-          <button id="closeRemoteBtn">Bağlantını bitir</button>
+            <div class="remote-actions">
+            <button data-shortcut="win_r">Win + R</button>
+            <button data-shortcut="win_e">Win + E</button>
+            <button data-shortcut="taskmgr">Task Manager</button>
+            <button data-shortcut="alt_tab">Alt + Tab</button>
+            <button id="closeRemoteBtn" class="danger">Bağlantını bitir</button>
+          </div>
         </div>
   
         <video id="remoteVideo" autoplay playsinline></video>
@@ -932,7 +954,11 @@ async function handleWebRTCIce(signal, payload) {
     
     document.addEventListener('keydown', sendKeyboardEvent);
     document.addEventListener('keyup', sendKeyboardEvent);
-  
+
+    document.querySelectorAll('[data-shortcut]').forEach(btn => {
+      btn.onclick = () => sendRemoteShortcut(btn.dataset.shortcut);
+    });
+    
     document.querySelector('#closeRemoteBtn').onclick = () => closeRemoteSession(true);
   }
 
@@ -1110,13 +1136,17 @@ async function sendMouseWheel(e) {
     type: 'remote-input',
     payload: JSON.stringify({
       action: 'mouse_wheel',
-      delta_y: e.deltaY > 0 ? -5 : 5,
+      delta_y: e.deltaY > 0 ? 5 : -5,
       x: point.x,
       y: point.y
     })
   });
 }
 
+function normalizeTypedKey(e) {
+  if (e.shiftKey && e.code === 'Period') return ',';
+  return e.key;
+}
 
 
 async function sendKeyboardEvent(e) {
@@ -1165,7 +1195,7 @@ async function sendKeyboardEvent(e) {
       type: 'remote-input',
       payload: JSON.stringify({
         action: 'key_text',
-        text: e.key
+        text: normalizeTypedKey(e)
       })
     });
   }
@@ -1178,6 +1208,23 @@ async function handleRemoteInput(payload) {
     console.error('remote_input failed:', err);
   }
 }
+
+
+  async function sendRemoteShortcut(shortcut) {
+    if (!ACTIVE_TARGET_CODE) return;
+  
+    await supabase.from('signals').insert({
+      sender_id: CURRENT_PROFILE.id,
+      target_code: ACTIVE_TARGET_CODE,
+      type: 'remote-input',
+      payload: JSON.stringify({
+        action: 'shortcut',
+        shortcut
+      })
+    });
+  }
+
+
 
   /*==============================================================================================================================*/
   /*Bu blok faylın ən axırında tam belə bağlanmalıdır:*/
