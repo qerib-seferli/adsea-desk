@@ -49,7 +49,7 @@ document.querySelector('#app').innerHTML = `
 
       <div id="loginView" class="login-card">
         <div class="security-note-small">
-          Yalnız səlahiyyətli əməkdaşlar üçün daxili təhlükəsiz bağlantı sistemi.
+          Səlahiyyətli əməkdaşlar üçün daxili təhlükəsiz bağlantı.
         </div>
 
         <label>Korporativ e-poçt</label>
@@ -73,7 +73,7 @@ document.querySelector('#app').innerHTML = `
         </section>
 
         <section class="my-code-card">
-          <span>Bu kompüterin ADSEA kodu</span>
+          <span>Bu kompüterin ADSEA Desk kodu</span>
           <div class="code-copy-row">
             <strong id="deviceCode">---</strong>
             <button id="copyBtn" title="Kopyala">⧉</button>
@@ -94,12 +94,12 @@ document.querySelector('#app').innerHTML = `
           <span id="connectionDot" class="net-dot online"></span>
           <b id="connectionText">Bağlantı rejimi: Hazır</b>
         </div>
-        <p>Windows Təhlükəsiz Uzaqdan Dəstək Agenti</p>
+        <p>Təhlükəsiz Uzaqdan Dəstək Agenti</p>
       </div>
 
       <article class="card connect-card">
         <h2>Uzaq iş masasına qoşulma</h2>
-        <p>Qoşulmaq istədiyiniz əməkdaşın 9 rəqəmli ADSEA kodunu daxil edin.</p>
+        <p>Qoşulmaq istədiyiniz əməkdaşın 9 rəqəmli ADSEA Desk kodunu daxil edin.</p>
 
         <div class="connect-row">
           <input id="targetCode" maxlength="11" placeholder="000 000 000">
@@ -372,7 +372,7 @@ async function handleSignal(signal) {
   
   if (signal.type === 'connection-response') {
     if (p.accepted) {
-      setConnectMessage(`${p.responder_name || 'Qarşı tərəf'} qoşulmaya icazə verdi. Növbəti mərhələdə ekran paylaşımı başlayacaq.`, 'success');
+      setConnectMessage(`${p.responder_name || 'Qarşı tərəf'} qoşulmaya icazə verdi. Ekran paylaşımı başlayacaq.`, 'success');
     } else {
       setConnectMessage(`${p.responder_name || 'Qarşı tərəf'} qoşulma sorğusunu rədd etdi.`, 'error');
     }
@@ -524,7 +524,7 @@ async function connectByCode() {
   }
 
   if (!/^\d{3} \d{3} \d{3}$/.test(code)) {
-    setConnectMessage('9 rəqəmli ADSEA kodunu düzgün daxil edin.', 'error');
+    setConnectMessage('9 rəqəmli ADSEA Desk kodunu düzgün daxil edin.', 'error');
     return;
   }
 
@@ -684,7 +684,7 @@ async function login(session) {
 
   if (!CURRENT_PROFILE.device_code) {
     await supabase.auth.signOut();
-    setLoginMessage('Profil üçün ADSEA kodu tapılmadı.', 'error');
+    setLoginMessage('Profil üçün ADSEA Desk kodu tapılmadı.', 'error');
     return;
   }
 
@@ -921,13 +921,17 @@ async function handleWebRTCIce(signal, payload) {
     });
   
     video.addEventListener('mousemove', sendMouseMove);
-    video.addEventListener('click', sendMouseClick);
+    video.addEventListener('mousedown', sendMouseDown);
+    video.addEventListener('mouseup', sendMouseUp);
+    video.addEventListener('dblclick', sendMouseDoubleClick);
+    video.addEventListener('wheel', sendMouseWheel, { passive: false });
+    
     video.addEventListener('contextmenu', e => {
       e.preventDefault();
-      sendMouseClick(e, 'right');
     });
-  
-    document.addEventListener('keydown', sendKeyboardText);
+    
+    document.addEventListener('keydown', sendKeyboardEvent);
+    document.addEventListener('keyup', sendKeyboardEvent);
   
     document.querySelector('#closeRemoteBtn').onclick = () => closeRemoteSession(true);
   }
@@ -974,7 +978,8 @@ async function closeRemoteSession(sendNotice = true) {
   ACTIVE_SESSION_ID = null;
   ACTIVE_TARGET_CODE = null;
 
-  document.removeEventListener('keydown', sendKeyboardText);
+  document.removeEventListener('keydown', sendKeyboardEvent);
+  document.removeEventListener('keyup', sendKeyboardEvent);
 
   const root = document.querySelector('#modalRoot');
   if (root) root.innerHTML = '';
@@ -1041,89 +1046,107 @@ function getVideoPoint(e) {
     });
   }
   
-  async function sendMouseClick(e, button = 'left') {
-    const point = getVideoPoint(e);
-    if (!point || !ACTIVE_TARGET_CODE) return;
-  
-    await supabase.from('signals').insert({
-      sender_id: CURRENT_PROFILE.id,
-      target_code: ACTIVE_TARGET_CODE,
-      type: 'remote-input',
-      payload: JSON.stringify({
-        action: 'mouse_click',
-        button,
-        x: point.x,
-        y: point.y
-      })
-    });
-  }
 
-
-async function sendKeyboardText(e) {
-  if (!ACTIVE_TARGET_CODE) return;
-
-  const allowedSpecial = [
-    'Enter', 'Backspace', 'Tab', 'Escape', 'Delete',
-    'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight',
-    'Home', 'End', 'PageUp', 'PageDown'
-  ];
-
-  if (e.ctrlKey && ['a', 'c', 'v', 'x', 'z'].includes(e.key.toLowerCase())) {
-    e.preventDefault();
-
-    await supabase.from('signals').insert({
-      sender_id: CURRENT_PROFILE.id,
-      target_code: ACTIVE_TARGET_CODE,
-      type: 'remote-input',
-      payload: JSON.stringify({
-        action: 'key_combo',
-        ctrl: true,
-        key: e.key.toLowerCase()
-      })
-    });
-
-    return;
-  }
-
-  if (allowedSpecial.includes(e.key)) {
-    e.preventDefault();
-
-    await supabase.from('signals').insert({
-      sender_id: CURRENT_PROFILE.id,
-      target_code: ACTIVE_TARGET_CODE,
-      type: 'remote-input',
-      payload: JSON.stringify({
-        action: 'key_special',
-        key: e.key
-      })
-    });
-
-    return;
-  }
-
-  if (e.ctrlKey || e.altKey || e.metaKey) return;
-  if (!e.key || e.key.length !== 1) return;
+async function sendMouseDown(e) {
+  const point = getVideoPoint(e);
+  if (!point || !ACTIVE_TARGET_CODE) return;
 
   await supabase.from('signals').insert({
     sender_id: CURRENT_PROFILE.id,
     target_code: ACTIVE_TARGET_CODE,
     type: 'remote-input',
     payload: JSON.stringify({
-      action: 'key_text',
-      text: e.key
+      action: 'mouse_down',
+      button: e.button === 2 ? 'right' : e.button === 1 ? 'middle' : 'left',
+      x: point.x,
+      y: point.y
     })
   });
 }
 
-  
-  async function handleRemoteInput(payload) {
-    try {
-      await invoke('remote_input', { payload });
-    } catch (err) {
-      console.error('remote_input failed:', err);
-    }
-  }
+async function sendMouseUp(e) {
+  const point = getVideoPoint(e);
+  if (!point || !ACTIVE_TARGET_CODE) return;
 
+  await supabase.from('signals').insert({
+    sender_id: CURRENT_PROFILE.id,
+    target_code: ACTIVE_TARGET_CODE,
+    type: 'remote-input',
+    payload: JSON.stringify({
+      action: 'mouse_up',
+      button: e.button === 2 ? 'right' : e.button === 1 ? 'middle' : 'left',
+      x: point.x,
+      y: point.y
+    })
+  });
+}
+
+async function sendMouseDoubleClick(e) {
+  const point = getVideoPoint(e);
+  if (!point || !ACTIVE_TARGET_CODE) return;
+
+  await supabase.from('signals').insert({
+    sender_id: CURRENT_PROFILE.id,
+    target_code: ACTIVE_TARGET_CODE,
+    type: 'remote-input',
+    payload: JSON.stringify({
+      action: 'mouse_double_click',
+      button: 'left',
+      x: point.x,
+      y: point.y
+    })
+  });
+}
+
+async function sendMouseWheel(e) {
+  e.preventDefault();
+
+  const point = getVideoPoint(e);
+  if (!point || !ACTIVE_TARGET_CODE) return;
+
+  await supabase.from('signals').insert({
+    sender_id: CURRENT_PROFILE.id,
+    target_code: ACTIVE_TARGET_CODE,
+    type: 'remote-input',
+    payload: JSON.stringify({
+      action: 'mouse_wheel',
+      delta_y: e.deltaY > 0 ? -5 : 5,
+      x: point.x,
+      y: point.y
+    })
+  });
+}
+
+async function sendKeyboardEvent(e) {
+  if (!ACTIVE_TARGET_CODE) return;
+
+  e.preventDefault();
+
+  await supabase.from('signals').insert({
+    sender_id: CURRENT_PROFILE.id,
+    target_code: ACTIVE_TARGET_CODE,
+    type: 'remote-input',
+    payload: JSON.stringify({
+      action: e.type === 'keydown' ? 'key_down' : 'key_up',
+      key: e.key,
+      code: e.code,
+      ctrl: e.ctrlKey,
+      shift: e.shiftKey,
+      alt: e.altKey,
+      meta: e.metaKey
+    })
+  });
+}
+
+async function handleRemoteInput(payload) {
+  try {
+    await invoke('remote_input', { payload });
+  } catch (err) {
+    console.error('remote_input failed:', err);
+  }
+}
+
+  /*==============================================================================================================================*/
   /*Bu blok faylın ən axırında tam belə bağlanmalıdır:*/
   (async () => {
     const { data } = await supabase.auth.getSession();
