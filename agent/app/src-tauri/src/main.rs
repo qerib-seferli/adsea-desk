@@ -10,6 +10,44 @@ fn remote_input(payload: Value) -> Result<(), String> {
     let mut enigo = Enigo::new();
 
     match action {
+        "shortcut" => {
+            release_modifiers(&mut enigo);
+        
+            let shortcut = payload.get("shortcut").and_then(|v| v.as_str()).unwrap_or("");
+        
+            match shortcut {
+                "win_r" => {
+                    enigo.key_down(enigo::Key::Meta);
+                    enigo.key_click(enigo::Key::Layout('r'));
+                    enigo.key_up(enigo::Key::Meta);
+                }
+        
+                "win_e" => {
+                    enigo.key_down(enigo::Key::Meta);
+                    enigo.key_click(enigo::Key::Layout('e'));
+                    enigo.key_up(enigo::Key::Meta);
+                }
+        
+                "taskmgr" => {
+                    enigo.key_down(enigo::Key::Control);
+                    enigo.key_down(enigo::Key::Shift);
+                    enigo.key_click(enigo::Key::Escape);
+                    enigo.key_up(enigo::Key::Shift);
+                    enigo.key_up(enigo::Key::Control);
+                }
+        
+                "alt_tab" => {
+                    enigo.key_down(enigo::Key::Alt);
+                    enigo.key_click(enigo::Key::Tab);
+                    enigo.key_up(enigo::Key::Alt);
+                }
+        
+                _ => {}
+            }
+        
+            release_modifiers(&mut enigo);
+        }
+        
         "mouse_move" => {
             let x = payload.get("x").and_then(|v| v.as_i64()).unwrap_or(0) as i32;
             let y = payload.get("y").and_then(|v| v.as_i64()).unwrap_or(0) as i32;
@@ -47,9 +85,16 @@ fn remote_input(payload: Value) -> Result<(), String> {
 
         "key_text" => {
             release_modifiers(&mut enigo);
+        
             if let Some(text) = payload.get("text").and_then(|v| v.as_str()) {
-                enigo.key_sequence(text);
+                if text.chars().count() == 1 {
+                    let ch = text.chars().next().unwrap_or(' ');
+                    enigo.key_click(enigo::Key::Layout(ch));
+                } else {
+                    enigo.key_sequence(text);
+                }
             }
+        
             release_modifiers(&mut enigo);
         }
 
