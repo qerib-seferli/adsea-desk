@@ -45,20 +45,51 @@ fn remote_input(payload: Value) -> Result<(), String> {
             enigo.mouse_scroll_y(delta);
         }
 
-        "key_down" => {
-            let key = payload.get("key").and_then(|v| v.as_str()).unwrap_or("");
-            enigo.key_down(map_key(key));
+        "key_text" => {
+            release_modifiers(&mut enigo);
+            if let Some(text) = payload.get("text").and_then(|v| v.as_str()) {
+                enigo.key_sequence(text);
+            }
+            release_modifiers(&mut enigo);
         }
 
-        "key_up" => {
+        "key_combo" => {
+            release_modifiers(&mut enigo);
+
+            let ctrl = payload.get("ctrl").and_then(|v| v.as_bool()).unwrap_or(false);
+            let shift = payload.get("shift").and_then(|v| v.as_bool()).unwrap_or(false);
+            let alt = payload.get("alt").and_then(|v| v.as_bool()).unwrap_or(false);
+            let meta = payload.get("meta").and_then(|v| v.as_bool()).unwrap_or(false);
             let key = payload.get("key").and_then(|v| v.as_str()).unwrap_or("");
-            enigo.key_up(map_key(key));
+
+            if ctrl { enigo.key_down(enigo::Key::Control); }
+            if shift { enigo.key_down(enigo::Key::Shift); }
+            if alt { enigo.key_down(enigo::Key::Alt); }
+            if meta { enigo.key_down(enigo::Key::Meta); }
+
+            enigo.key_click(map_key(key));
+
+            if meta { enigo.key_up(enigo::Key::Meta); }
+            if alt { enigo.key_up(enigo::Key::Alt); }
+            if shift { enigo.key_up(enigo::Key::Shift); }
+            if ctrl { enigo.key_up(enigo::Key::Control); }
+
+            release_modifiers(&mut enigo);
         }
 
-        _ => {}
+        _ => {
+            release_modifiers(&mut enigo);
+        }
     }
 
     Ok(())
+}
+
+fn release_modifiers(enigo: &mut Enigo) {
+    enigo.key_up(enigo::Key::Control);
+    enigo.key_up(enigo::Key::Shift);
+    enigo.key_up(enigo::Key::Alt);
+    enigo.key_up(enigo::Key::Meta);
 }
 
 fn mouse_button(button: &str) -> MouseButton {
@@ -84,17 +115,26 @@ fn map_key(key: &str) -> enigo::Key {
         "End" => enigo::Key::End,
         "PageUp" => enigo::Key::PageUp,
         "PageDown" => enigo::Key::PageDown,
-        "Shift" => enigo::Key::Shift,
-        "Control" => enigo::Key::Control,
-        "Alt" => enigo::Key::Alt,
-        "Meta" => enigo::Key::Meta,
         " " => enigo::Key::Space,
+        "F1" => enigo::Key::F1,
+        "F2" => enigo::Key::F2,
+        "F3" => enigo::Key::F3,
+        "F4" => enigo::Key::F4,
+        "F5" => enigo::Key::F5,
+        "F6" => enigo::Key::F6,
+        "F7" => enigo::Key::F7,
+        "F8" => enigo::Key::F8,
+        "F9" => enigo::Key::F9,
+        "F10" => enigo::Key::F10,
+        "F11" => enigo::Key::F11,
+        "F12" => enigo::Key::F12,
         _ => {
             let ch = key.chars().next().unwrap_or(' ');
             enigo::Key::Layout(ch)
         }
     }
 }
+
 
 
 
