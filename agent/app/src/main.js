@@ -1117,25 +1117,58 @@ async function sendMouseWheel(e) {
   });
 }
 
+
+
 async function sendKeyboardEvent(e) {
   if (!ACTIVE_TARGET_CODE) return;
+  if (e.type !== 'keydown') return;
 
-  e.preventDefault();
+  const tag = document.activeElement?.tagName?.toLowerCase();
+  if (tag === 'input' || tag === 'textarea') return;
 
-  await supabase.from('signals').insert({
-    sender_id: CURRENT_PROFILE.id,
-    target_code: ACTIVE_TARGET_CODE,
-    type: 'remote-input',
-    payload: JSON.stringify({
-      action: e.type === 'keydown' ? 'key_down' : 'key_up',
-      key: e.key,
-      code: e.code,
-      ctrl: e.ctrlKey,
-      shift: e.shiftKey,
-      alt: e.altKey,
-      meta: e.metaKey
-    })
-  });
+  const specialKeys = [
+    'Enter','Backspace','Tab','Escape','Delete',
+    'ArrowUp','ArrowDown','ArrowLeft','ArrowRight',
+    'Home','End','PageUp','PageDown',
+    'F1','F2','F3','F4','F5','F6','F7','F8','F9','F10','F11','F12'
+  ];
+
+  const isCombo = e.ctrlKey || e.shiftKey || e.altKey || e.metaKey;
+
+  if (isCombo || specialKeys.includes(e.key)) {
+    e.preventDefault();
+
+    await supabase.from('signals').insert({
+      sender_id: CURRENT_PROFILE.id,
+      target_code: ACTIVE_TARGET_CODE,
+      type: 'remote-input',
+      payload: JSON.stringify({
+        action: 'key_combo',
+        key: e.key,
+        code: e.code,
+        ctrl: e.ctrlKey,
+        shift: e.shiftKey,
+        alt: e.altKey,
+        meta: e.metaKey
+      })
+    });
+
+    return;
+  }
+
+  if (e.key && e.key.length === 1) {
+    e.preventDefault();
+
+    await supabase.from('signals').insert({
+      sender_id: CURRENT_PROFILE.id,
+      target_code: ACTIVE_TARGET_CODE,
+      type: 'remote-input',
+      payload: JSON.stringify({
+        action: 'key_text',
+        text: e.key
+      })
+    });
+  }
 }
 
 async function handleRemoteInput(payload) {
