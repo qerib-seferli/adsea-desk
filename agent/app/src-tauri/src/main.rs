@@ -1,5 +1,7 @@
+#![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 use enigo::{Enigo, KeyboardControllable, MouseButton, MouseControllable};
 use serde_json::Value;
+
 
 #[tauri::command]
 fn remote_input(payload: Value) -> Result<(), String> {
@@ -37,11 +39,52 @@ fn remote_input(payload: Value) -> Result<(), String> {
             }
         }
 
+        "key_special" => {
+            if let Some(key) = payload.get("key").and_then(|v| v.as_str()) {
+                match key {
+                    "Enter" => enigo.key_click(enigo::Key::Return),
+                    "Backspace" => enigo.key_click(enigo::Key::Backspace),
+                    "Tab" => enigo.key_click(enigo::Key::Tab),
+                    "Escape" => enigo.key_click(enigo::Key::Escape),
+                    "Delete" => enigo.key_click(enigo::Key::Delete),
+                    "ArrowUp" => enigo.key_click(enigo::Key::UpArrow),
+                    "ArrowDown" => enigo.key_click(enigo::Key::DownArrow),
+                    "ArrowLeft" => enigo.key_click(enigo::Key::LeftArrow),
+                    "ArrowRight" => enigo.key_click(enigo::Key::RightArrow),
+                    "Home" => enigo.key_click(enigo::Key::Home),
+                    "End" => enigo.key_click(enigo::Key::End),
+                    "PageUp" => enigo.key_click(enigo::Key::PageUp),
+                    "PageDown" => enigo.key_click(enigo::Key::PageDown),
+                    _ => {}
+                }
+            }
+        }
+
+        "key_combo" => {
+            let ctrl = payload.get("ctrl").and_then(|v| v.as_bool()).unwrap_or(false);
+            let key = payload.get("key").and_then(|v| v.as_str()).unwrap_or("");
+
+            if ctrl {
+                enigo.key_down(enigo::Key::Control);
+                match key {
+                    "a" => enigo.key_click(enigo::Key::Layout('a')),
+                    "c" => enigo.key_click(enigo::Key::Layout('c')),
+                    "v" => enigo.key_click(enigo::Key::Layout('v')),
+                    "x" => enigo.key_click(enigo::Key::Layout('x')),
+                    "z" => enigo.key_click(enigo::Key::Layout('z')),
+                    _ => {}
+                }
+                enigo.key_up(enigo::Key::Control);
+            }
+        }
+
         _ => {}
     }
 
     Ok(())
 }
+
+
 
 fn main() {
     tauri::Builder::default()
