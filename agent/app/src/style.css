@@ -1002,5 +1002,76 @@ summary span{
   }
 }
 /*===================================================================*/
+/* FINAL LOGIN WIDTH FIX */
+.agent-page.login-mode .agent-shell{
+  max-width:620px !important;
+}
 
+.agent-page.login-mode .sidebar{
+  width:100% !important;
+  max-width:620px !important;
+  height:auto !important;
+  min-height:0 !important;
+}
+
+.agent-page.login-mode .login-card{
+  width:100% !important;
+}
+
+.agent-page.login-mode .security-note-small,
+.agent-page.login-mode #loginMessage{
+  white-space:normal !important;
+  line-height:1.45 !important;
+}
+
+/* REMOTE DISCONNECT POPUP */
+.remote-disconnect-box{
+  position:fixed;
+  inset:0;
+  z-index:10050;
+  display:grid;
+  place-items:center;
+  background:rgba(2,6,23,.72);
+}
+
+.remote-disconnect-box > div{
+  width:460px;
+  max-width:calc(100vw - 40px);
+  padding:24px;
+  border-radius:22px;
+  background:#071522;
+  border:1px solid rgba(239,68,68,.35);
+  box-shadow:0 30px 90px rgba(0,0,0,.55);
+}
+
+.remote-disconnect-box h2{
+  margin:0 0 10px;
+  color:#fecaca;
+}
+
+.remote-disconnect-box p{
+  color:#b9c9d7;
+}
+
+.disconnect-actions{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:12px;
+  margin-top:18px;
+}
+
+.disconnect-actions button{
+  padding:13px;
+  border-radius:14px;
+  color:white;
+  background:linear-gradient(135deg,#2563eb,#22c55e);
+}
+
+.disconnect-actions button:last-child{
+  background:rgba(239,68,68,.14);
+  border:1px solid rgba(239,68,68,.35);
+  color:#fecaca;
+}
+/*===================================================================*/
+/*===================================================================*/
 /*===================================================================*/
