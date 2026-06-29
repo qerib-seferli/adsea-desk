@@ -889,6 +889,23 @@ async function handleWebRTCOffer(signal, payload) {
   }
 }
 
+
+
+    pc.onconnectionstatechange = () => {
+      if (['disconnected', 'failed', 'closed'].includes(pc.connectionState)) {
+        showDisconnectedOverlay();
+      }
+    };
+    
+    pc.oniceconnectionstatechange = () => {
+      if (['disconnected', 'failed', 'closed'].includes(pc.iceConnectionState)) {
+        showDisconnectedOverlay();
+      }
+    };
+
+
+
+
 async function handleWebRTCAnswer(signal, payload) {
   try {
     if (!ACTIVE_PC) return;
@@ -923,12 +940,16 @@ async function handleWebRTCIce(signal, payload) {
             </span>
           </div>
             <div class="remote-actions">
-            <button data-shortcut="win_r">Win + R</button>
-            <button data-shortcut="win_e">Win + E</button>
-            <button data-shortcut="taskmgr">Task Manager</button>
-            <button data-shortcut="alt_tab">Alt + Tab</button>
-            <button id="closeRemoteBtn" class="danger">Bağlantını bitir</button>
-          </div>
+              <button data-shortcut="win_r">Win+R</button>
+              <button data-shortcut="win_e">Win+E</button>
+              <button data-shortcut="win_i">Win+I</button>
+              <button data-shortcut="win_x">Win+X</button>
+              <button data-shortcut="control_panel">Control Panel</button>
+              <button data-shortcut="powershell">PowerShell</button>
+              <button data-shortcut="taskmgr">Task Manager</button>
+              <button data-shortcut="alt_tab">Alt+Tab</button>
+              <button id="closeRemoteBtn" class="danger">Bağlantını bitir</button>
+            </div>
         </div>
   
         <video id="remoteVideo" autoplay playsinline></video>
@@ -945,7 +966,6 @@ async function handleWebRTCIce(signal, payload) {
     video.addEventListener('mousemove', sendMouseMove);
     video.addEventListener('mousedown', sendMouseDown);
     video.addEventListener('mouseup', sendMouseUp);
-    video.addEventListener('dblclick', sendMouseDoubleClick);
     video.addEventListener('wheel', sendMouseWheel, { passive: false });
     
     video.addEventListener('contextmenu', e => {
@@ -1149,12 +1169,35 @@ function normalizeTypedKey(e) {
 }
 
 
+
 async function sendKeyboardEvent(e) {
   if (!ACTIVE_TARGET_CODE) return;
   if (e.type !== 'keydown') return;
 
   const tag = document.activeElement?.tagName?.toLowerCase();
   if (tag === 'input' || tag === 'textarea') return;
+
+  const onlyShift = e.shiftKey && !e.ctrlKey && !e.altKey && !e.metaKey;
+
+  if (e.key && e.key.length === 1 && (!e.ctrlKey && !e.altKey && !e.metaKey)) {
+    e.preventDefault();
+
+    let text = e.key;
+
+    if (onlyShift && e.code === 'Period') text = ',';
+
+    await supabase.from('signals').insert({
+      sender_id: CURRENT_PROFILE.id,
+      target_code: ACTIVE_TARGET_CODE,
+      type: 'remote-input',
+      payload: JSON.stringify({
+        action: 'key_text',
+        text
+      })
+    });
+
+    return;
+  }
 
   const specialKeys = [
     'Enter','Backspace','Tab','Escape','Delete',
@@ -1163,9 +1206,7 @@ async function sendKeyboardEvent(e) {
     'F1','F2','F3','F4','F5','F6','F7','F8','F9','F10','F11','F12'
   ];
 
-  const isCombo = e.ctrlKey || e.shiftKey || e.altKey || e.metaKey;
-
-  if (isCombo || specialKeys.includes(e.key)) {
+  if (e.ctrlKey || e.shiftKey || e.altKey || e.metaKey || specialKeys.includes(e.key)) {
     e.preventDefault();
 
     await supabase.from('signals').insert({
@@ -1182,24 +1223,10 @@ async function sendKeyboardEvent(e) {
         meta: e.metaKey
       })
     });
-
-    return;
-  }
-
-  if (e.key && e.key.length === 1) {
-    e.preventDefault();
-
-    await supabase.from('signals').insert({
-      sender_id: CURRENT_PROFILE.id,
-      target_code: ACTIVE_TARGET_CODE,
-      type: 'remote-input',
-      payload: JSON.stringify({
-        action: 'key_text',
-        text: normalizeTypedKey(e)
-      })
-    });
   }
 }
+
+
 
 async function handleRemoteInput(payload) {
   try {
@@ -1225,6 +1252,40 @@ async function handleRemoteInput(payload) {
   }
 
 
+
+function showDisconnectedOverlay() {
+  if (!ACTIVE_SESSION_ID) return;
+
+  const old = document.querySelector('#remoteDisconnectBox');
+  if (old) return;
+
+  const box = document.createElement('div');
+  box.id = 'remoteDisconnectBox';
+  box.className = 'remote-disconnect-box';
+  box.innerHTML = `
+    <div>
+      <h2>Bağlantı kəsildi</h2>
+      <p>Qarşı tərəfin internet bağlantısı kəsilmiş, proqram bağlanmış və ya ekran paylaşımı dayandırılmış ola bilər.</p>
+      <div class="disconnect-actions">
+        <button id="retryRemoteBtn">Yenidən qoşul</button>
+        <button id="closeDisconnectedBtn">Bağla</button>
+      </div>
+    </div>
+  `;
+
+  document.body.appendChild(box);
+
+  document.querySelector('#closeDisconnectedBtn').onclick = () => closeRemoteSession(false);
+
+  document.querySelector('#retryRemoteBtn').onclick = async () => {
+    const code = ACTIVE_TARGET_CODE;
+    closeRemoteSession(false);
+    if (code) {
+      document.querySelector('#targetCode').value = code;
+      await connectByCode();
+    }
+  };
+}
 
   /*==============================================================================================================================*/
   /*Bu blok faylın ən axırında tam belə bağlanmalıdır:*/
