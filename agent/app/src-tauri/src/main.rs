@@ -60,11 +60,12 @@ fn remote_input(payload: Value) -> Result<(), String> {
                 }
         
                 "taskmgr" => {
-                    enigo.key_down(enigo::Key::Control);
-                    enigo.key_down(enigo::Key::Shift);
-                    enigo.key_click(enigo::Key::Escape);
-                    enigo.key_up(enigo::Key::Shift);
-                    enigo.key_up(enigo::Key::Control);
+                    enigo.key_down(enigo::Key::Meta);
+                    enigo.key_click(enigo::Key::Layout('r'));
+                    enigo.key_up(enigo::Key::Meta);
+                    thread::sleep(Duration::from_millis(350));
+                    enigo.key_sequence("taskmgr");
+                    enigo.key_click(enigo::Key::Return);
                 }
         
                 "alt_tab" => {
@@ -120,12 +121,7 @@ fn remote_input(payload: Value) -> Result<(), String> {
             release_modifiers(&mut enigo);
         
             if let Some(text) = payload.get("text").and_then(|v| v.as_str()) {
-                if text.chars().count() == 1 {
-                    let ch = text.chars().next().unwrap_or(' ');
-                    enigo.key_click(enigo::Key::Layout(ch));
-                } else {
-                    enigo.key_sequence(text);
-                }
+                enigo.key_sequence(text);
             }
         
             release_modifiers(&mut enigo);
