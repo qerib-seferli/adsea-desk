@@ -1,6 +1,7 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 use enigo::{Enigo, KeyboardControllable, MouseButton, MouseControllable};
 use serde_json::Value;
+use std::{thread, time::Duration};
 
 
 
@@ -28,6 +29,36 @@ fn remote_input(payload: Value) -> Result<(), String> {
                     enigo.key_up(enigo::Key::Meta);
                 }
         
+                "win_i" => {
+                    enigo.key_down(enigo::Key::Meta);
+                    enigo.key_click(enigo::Key::Layout('i'));
+                    enigo.key_up(enigo::Key::Meta);
+                }
+        
+                "win_x" => {
+                    enigo.key_down(enigo::Key::Meta);
+                    enigo.key_click(enigo::Key::Layout('x'));
+                    enigo.key_up(enigo::Key::Meta);
+                }
+        
+                "control_panel" => {
+                    enigo.key_down(enigo::Key::Meta);
+                    enigo.key_click(enigo::Key::Layout('r'));
+                    enigo.key_up(enigo::Key::Meta);
+                    thread::sleep(Duration::from_millis(350));
+                    enigo.key_sequence("control");
+                    enigo.key_click(enigo::Key::Return);
+                }
+        
+                "powershell" => {
+                    enigo.key_down(enigo::Key::Meta);
+                    enigo.key_click(enigo::Key::Layout('r'));
+                    enigo.key_up(enigo::Key::Meta);
+                    thread::sleep(Duration::from_millis(350));
+                    enigo.key_sequence("powershell");
+                    enigo.key_click(enigo::Key::Return);
+                }
+        
                 "taskmgr" => {
                     enigo.key_down(enigo::Key::Control);
                     enigo.key_down(enigo::Key::Shift);
@@ -39,6 +70,7 @@ fn remote_input(payload: Value) -> Result<(), String> {
                 "alt_tab" => {
                     enigo.key_down(enigo::Key::Alt);
                     enigo.key_click(enigo::Key::Tab);
+                    thread::sleep(Duration::from_millis(120));
                     enigo.key_up(enigo::Key::Alt);
                 }
         
@@ -47,6 +79,7 @@ fn remote_input(payload: Value) -> Result<(), String> {
         
             release_modifiers(&mut enigo);
         }
+        
         
         "mouse_move" => {
             let x = payload.get("x").and_then(|v| v.as_i64()).unwrap_or(0) as i32;
