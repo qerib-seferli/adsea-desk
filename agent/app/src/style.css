@@ -878,5 +878,47 @@ summary span{
   color:#fecaca;
 }
 /*===================================================================*/
+.remote-disconnected{
+  position:fixed;
+  inset:0;
+  z-index:10000;
+  display:grid;
+  place-items:center;
+  background:rgba(2,6,23,.82);
+}
+
+.remote-disconnected-card{
+  width:430px;
+  max-width:calc(100vw - 32px);
+  padding:24px;
+  border-radius:24px;
+  background:rgba(15,23,42,.98);
+  border:1px solid rgba(239,68,68,.35);
+  box-shadow:0 28px 90px rgba(0,0,0,.55);
+}
+
+.remote-disconnected-card h2{
+  margin:0 0 8px;
+  color:#fecaca;
+}
+
+.disconnect-actions{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:12px;
+  margin-top:18px;
+}
+
+.disconnect-actions button{
+  padding:13px;
+  background:linear-gradient(135deg,#2563eb,#22c55e);
+  color:#fff;
+}
+
+.disconnect-actions .danger{
+  background:rgba(239,68,68,.14);
+  border:1px solid rgba(239,68,68,.35);
+  color:#fecaca;
+}
 /*===================================================================*/
 /*===================================================================*/
