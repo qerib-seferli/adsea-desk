@@ -25,6 +25,8 @@ let ACTIVE_PC = null;
 let ACTIVE_SESSION_ID = null;
 let ACTIVE_TARGET_CODE = null;
 let REMOTE_VIDEO_SIZE = { width: 0, height: 0 };
+let INPUT_DC = null;
+let LAST_REMOTE_INPUT_AT = 0;
 
 const RTC_CONFIG = {
   iceServers: [
@@ -667,6 +669,8 @@ async function respond(signal, accepted) {
   await loadHistory();
 }
 
+
+
 async function login(session) {
   CURRENT_PROFILE = await loadProfile(session.user.id);
 
@@ -699,7 +703,7 @@ async function login(session) {
   updateInternetState();
 }
 
-document.querySelector('#loginBtn').onclick = async () => {
+async function doLogin() {
   const email = document.querySelector('#email').value.trim();
   const password = document.querySelector('#password').value;
 
@@ -718,7 +722,18 @@ document.querySelector('#loginBtn').onclick = async () => {
   }
 
   await login(data.session);
-};
+}
+
+document.querySelector('#loginBtn').onclick = doLogin;
+
+document.querySelector('#password').addEventListener('keydown', e => {
+  if (e.key === 'Enter') doLogin();
+});
+
+document.querySelector('#email').addEventListener('keydown', e => {
+  if (e.key === 'Enter') doLogin();
+});
+
 
 document.querySelector('#targetCode').addEventListener('input', e => {
   let v = e.target.value.replace(/\D/g, '').slice(0, 9);
@@ -751,8 +766,25 @@ window.addEventListener('offline', updateInternetState);
 
 
 
-async function createPeer(sessionId, targetCode) {
+async function createPeer(sessionId, targetCode, mode = 'viewer') {
   const pc = new RTCPeerConnection(RTC_CONFIG);
+
+  if (mode === 'host') {
+    const dc = pc.createDataChannel('remote-input', {
+      ordered: false,
+      maxRetransmits: 0
+    });
+
+    dc.onmessage = async e => {
+      try {
+        await handleRemoteInput(JSON.parse(e.data));
+      } catch {}
+    };
+  }
+
+  pc.ondatachannel = event => {
+    INPUT_DC = event.channel;
+  };
 
   pc.onicecandidate = async event => {
     if (event.candidate) {
@@ -768,12 +800,27 @@ async function createPeer(sessionId, targetCode) {
     }
   };
 
+  pc.onconnectionstatechange = () => {
+    if (['disconnected', 'failed', 'closed'].includes(pc.connectionState)) {
+      showDisconnectedOverlay();
+    }
+  };
+
+  pc.oniceconnectionstatechange = () => {
+    if (['disconnected', 'failed', 'closed'].includes(pc.iceConnectionState)) {
+      showDisconnectedOverlay();
+    }
+  };
+
   ACTIVE_PC = pc;
   ACTIVE_SESSION_ID = sessionId;
   ACTIVE_TARGET_CODE = targetCode;
 
   return pc;
 }
+
+
+
 
 async function startHostScreenShare(requestPayload) {
   try {
@@ -803,7 +850,7 @@ async function startHostScreenShare(requestPayload) {
     
     showHostSessionPanel(requestPayload, stream);
 
-    const pc = await createPeer(sessionId, targetCode);
+    const pc = await createPeer(sessionId, targetCode, 'host');
 
     
     stream.getTracks().forEach(track => {
@@ -856,7 +903,7 @@ async function handleWebRTCOffer(signal, payload) {
 
     showRemoteViewer(payload);
 
-    const pc = await createPeer(sessionId, payload.host_device_code);
+    const pc = await createPeer(sessionId, payload.host_device_code, 'viewer');
 
     pc.ontrack = event => {
       const video = document.querySelector('#remoteVideo');
@@ -888,22 +935,6 @@ async function handleWebRTCOffer(signal, payload) {
     setConnectMessage('Uzaq ekran bağlantısı qurulmadı.', 'error');
   }
 }
-
-
-
-    pc.onconnectionstatechange = () => {
-      if (['disconnected', 'failed', 'closed'].includes(pc.connectionState)) {
-        showDisconnectedOverlay();
-      }
-    };
-    
-    pc.oniceconnectionstatechange = () => {
-      if (['disconnected', 'failed', 'closed'].includes(pc.iceConnectionState)) {
-        showDisconnectedOverlay();
-      }
-    };
-
-
 
 
 async function handleWebRTCAnswer(signal, payload) {
@@ -1071,61 +1102,71 @@ function getVideoPoint(e) {
 
   
   let lastMouseSent = 0;
+
+
+
+  async function sendRemoteInput(payload) {
+    if (INPUT_DC && INPUT_DC.readyState === 'open') {
+      INPUT_DC.send(JSON.stringify(payload));
+      return;
+    }
   
-  async function sendMouseMove(e) {
-    const now = Date.now();
-    if (now - lastMouseSent < 35) return;
-    lastMouseSent = now;
-  
-    const point = getVideoPoint(e);
-    if (!point || !ACTIVE_TARGET_CODE) return;
+    if (!ACTIVE_TARGET_CODE) return;
   
     await supabase.from('signals').insert({
       sender_id: CURRENT_PROFILE.id,
       target_code: ACTIVE_TARGET_CODE,
       type: 'remote-input',
-      payload: JSON.stringify({
-        action: 'mouse_move',
-        x: point.x,
-        y: point.y
-      })
+      payload: JSON.stringify(payload)
     });
   }
-  
+
+
+
+async function sendMouseMove(e) {
+  const now = performance.now();
+  if (now - LAST_REMOTE_INPUT_AT < 16) return;
+  LAST_REMOTE_INPUT_AT = now;
+
+  const point = getVideoPoint(e);
+  if (!point) return;
+
+  await sendRemoteInput({
+    action: 'mouse_move',
+    x: point.x,
+    y: point.y
+  });
+}
+
+
 
 async function sendMouseDown(e) {
   const point = getVideoPoint(e);
-  if (!point || !ACTIVE_TARGET_CODE) return;
+  if (!point) return;
 
-  await supabase.from('signals').insert({
-    sender_id: CURRENT_PROFILE.id,
-    target_code: ACTIVE_TARGET_CODE,
-    type: 'remote-input',
-    payload: JSON.stringify({
-      action: 'mouse_down',
-      button: e.button === 2 ? 'right' : e.button === 1 ? 'middle' : 'left',
-      x: point.x,
-      y: point.y
-    })
+  await sendRemoteInput({
+    action: 'mouse_down',
+    button: e.button === 2 ? 'right' : e.button === 1 ? 'middle' : 'left',
+    x: point.x,
+    y: point.y
   });
 }
+
+
 
 async function sendMouseUp(e) {
   const point = getVideoPoint(e);
-  if (!point || !ACTIVE_TARGET_CODE) return;
+  if (!point) return;
 
-  await supabase.from('signals').insert({
-    sender_id: CURRENT_PROFILE.id,
-    target_code: ACTIVE_TARGET_CODE,
-    type: 'remote-input',
-    payload: JSON.stringify({
-      action: 'mouse_up',
-      button: e.button === 2 ? 'right' : e.button === 1 ? 'middle' : 'left',
-      x: point.x,
-      y: point.y
-    })
+  await sendRemoteInput({
+    action: 'mouse_up',
+    button: e.button === 2 ? 'right' : e.button === 1 ? 'middle' : 'left',
+    x: point.x,
+    y: point.y
   });
 }
+
+
 
 async function sendMouseDoubleClick(e) {
   const point = getVideoPoint(e);
@@ -1144,24 +1185,23 @@ async function sendMouseDoubleClick(e) {
   });
 }
 
+
+
 async function sendMouseWheel(e) {
   e.preventDefault();
 
   const point = getVideoPoint(e);
-  if (!point || !ACTIVE_TARGET_CODE) return;
+  if (!point) return;
 
-  await supabase.from('signals').insert({
-    sender_id: CURRENT_PROFILE.id,
-    target_code: ACTIVE_TARGET_CODE,
-    type: 'remote-input',
-    payload: JSON.stringify({
-      action: 'mouse_wheel',
-      delta_y: e.deltaY > 0 ? 5 : -5,
-      x: point.x,
-      y: point.y
-    })
+  await sendRemoteInput({
+    action: 'mouse_wheel',
+    delta_y: e.deltaY > 0 ? 4 : -4,
+    x: point.x,
+    y: point.y
   });
 }
+
+
 
 function normalizeTypedKey(e) {
   if (e.shiftKey && e.code === 'Period') return ',';
@@ -1177,53 +1217,30 @@ async function sendKeyboardEvent(e) {
   const tag = document.activeElement?.tagName?.toLowerCase();
   if (tag === 'input' || tag === 'textarea') return;
 
-  const onlyShift = e.shiftKey && !e.ctrlKey && !e.altKey && !e.metaKey;
+  e.preventDefault();
 
-  if (e.key && e.key.length === 1 && (!e.ctrlKey && !e.altKey && !e.metaKey)) {
-    e.preventDefault();
-
+  if (e.key && e.key.length === 1 && !e.ctrlKey && !e.altKey && !e.metaKey) {
     let text = e.key;
 
-    if (onlyShift && e.code === 'Period') text = ',';
+    if (e.shiftKey && e.code === 'Period') text = ',';
 
-    await supabase.from('signals').insert({
-      sender_id: CURRENT_PROFILE.id,
-      target_code: ACTIVE_TARGET_CODE,
-      type: 'remote-input',
-      payload: JSON.stringify({
-        action: 'key_text',
-        text
-      })
+    await sendRemoteInput({
+      action: 'key_text',
+      text
     });
 
     return;
   }
 
-  const specialKeys = [
-    'Enter','Backspace','Tab','Escape','Delete',
-    'ArrowUp','ArrowDown','ArrowLeft','ArrowRight',
-    'Home','End','PageUp','PageDown',
-    'F1','F2','F3','F4','F5','F6','F7','F8','F9','F10','F11','F12'
-  ];
-
-  if (e.ctrlKey || e.shiftKey || e.altKey || e.metaKey || specialKeys.includes(e.key)) {
-    e.preventDefault();
-
-    await supabase.from('signals').insert({
-      sender_id: CURRENT_PROFILE.id,
-      target_code: ACTIVE_TARGET_CODE,
-      type: 'remote-input',
-      payload: JSON.stringify({
-        action: 'key_combo',
-        key: e.key,
-        code: e.code,
-        ctrl: e.ctrlKey,
-        shift: e.shiftKey,
-        alt: e.altKey,
-        meta: e.metaKey
-      })
-    });
-  }
+  await sendRemoteInput({
+    action: 'key_combo',
+    key: e.key,
+    code: e.code,
+    ctrl: e.ctrlKey,
+    shift: e.shiftKey,
+    alt: e.altKey,
+    meta: e.metaKey
+  });
 }
 
 
@@ -1237,19 +1254,12 @@ async function handleRemoteInput(payload) {
 }
 
 
-  async function sendRemoteShortcut(shortcut) {
-    if (!ACTIVE_TARGET_CODE) return;
-  
-    await supabase.from('signals').insert({
-      sender_id: CURRENT_PROFILE.id,
-      target_code: ACTIVE_TARGET_CODE,
-      type: 'remote-input',
-      payload: JSON.stringify({
-        action: 'shortcut',
-        shortcut
-      })
-    });
-  }
+async function sendRemoteShortcut(shortcut) {
+  await sendRemoteInput({
+    action: 'shortcut',
+    shortcut
+  });
+}
 
 
 
@@ -1289,9 +1299,24 @@ function showDisconnectedOverlay() {
 
   /*==============================================================================================================================*/
   /*Bu blok faylın ən axırında tam belə bağlanmalıdır:*/
+  window.addEventListener('keydown', e => {
+    if (e.key === 'F5' && !ACTIVE_SESSION_ID) {
+      e.preventDefault();
+    }
+  });
+  
   (async () => {
     const { data } = await supabase.auth.getSession();
-    if (data?.session) await login(data.session);
+  
+    if (data?.session) {
+      try {
+        await login(data.session);
+      } catch {
+        await supabase.auth.signOut();
+        setLoginMessage('Sessiya yenilənmədi. Zəhmət olmasa yenidən daxil olun.', 'error');
+      }
+    }
+  
     updateInternetState();
   
 })();
