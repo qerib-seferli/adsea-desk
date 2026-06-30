@@ -25,6 +25,8 @@ let ACTIVE_PC = null;
 let ACTIVE_SESSION_ID = null;
 let ACTIVE_TARGET_CODE = null;
 let REMOTE_VIDEO_SIZE = { width: 0, height: 0 };
+let ACTIVE_ROLE = null; // viewer | host
+let LAST_TARGET_CODE = null;
 let INPUT_DC = null;
 let LAST_REMOTE_INPUT_AT = 0;
 
@@ -373,11 +375,13 @@ async function handleSignal(signal) {
   }
   
   if (signal.type === 'connection-response') {
-    if (p.accepted) {
-      setConnectMessage(`${p.responder_name || 'Qarşı tərəf'} qoşulmaya icazə verdi. Ekran paylaşımı başlayacaq.`, 'success');
-    } else {
-      setConnectMessage(`${p.responder_name || 'Qarşı tərəf'} qoşulma sorğusunu rədd etdi.`, 'error');
-    }
+  if (p.accepted) {
+    removeDisconnectedOverlay();
+    setConnectMessage(`${p.responder_name || 'Qarşı tərəf'} qoşulmaya icazə verdi. Ekran paylaşımı başlayacaq.`, 'success');
+  } else {
+    setDisconnectMessage(`${p.responder_name || 'Qarşı tərəf'} qoşulma sorğusunu rədd etdi.`, 'error');
+    setConnectMessage(`${p.responder_name || 'Qarşı tərəf'} qoşulma sorğusunu rədd etdi.`, 'error');
+  }
 
     await loadHistory();
   }
@@ -545,7 +549,9 @@ async function connectByCode() {
   }
 
   if (!ONLINE_IDS.has(target.id)) {
-    setConnectMessage(`${fullName(target)} hazırda offline-dır. Sorğu göndərilə bilməz.`, 'error');
+    const msg = `${fullName(target)} hazırda offline-dır. Sorğu göndərilə bilməz.`;
+    setConnectMessage(msg, 'error');
+    setDisconnectMessage(msg, 'error');
     return;
   }
 
@@ -599,7 +605,10 @@ async function connectByCode() {
     return;
   }
 
-  setConnectMessage(`${fullName(target)} üçün qoşulma sorğusu göndərildi.`, 'success');
+  const sentMsg = `${fullName(target)} üçün qoşulma sorğusu göndərildi.`;
+  setConnectMessage(sentMsg, 'success');
+  setDisconnectMessage(sentMsg, 'success');
+    
 }
 
 function showRequest(signal, p) {
@@ -815,6 +824,8 @@ async function createPeer(sessionId, targetCode, mode = 'viewer') {
   ACTIVE_PC = pc;
   ACTIVE_SESSION_ID = sessionId;
   ACTIVE_TARGET_CODE = targetCode;
+  LAST_TARGET_CODE = targetCode;
+  ACTIVE_ROLE = mode;
 
   return pc;
 }
@@ -958,6 +969,8 @@ async function handleWebRTCIce(signal, payload) {
 
 
   function showRemoteViewer(payload) {
+    removeDisconnectedOverlay();
+    
     document.querySelector('#modalRoot').innerHTML = `
       <div class="remote-session">
         <div class="remote-topbar">
@@ -1054,6 +1067,9 @@ async function closeRemoteSession(sendNotice = true) {
 
   ACTIVE_SESSION_ID = null;
   ACTIVE_TARGET_CODE = null;
+  ACTIVE_ROLE = null;
+  INPUT_DC = null;
+  removeDisconnectedOverlay();
 
   document.removeEventListener('keydown', sendKeyboardEvent);
   document.removeEventListener('keyup', sendKeyboardEvent);
@@ -1263,21 +1279,42 @@ async function sendRemoteShortcut(shortcut) {
 
 
 
+function removeDisconnectedOverlay() {
+  const old = document.querySelector('#remoteDisconnectBox');
+  if (old) old.remove();
+}
+
+function setDisconnectMessage(text, type = 'info') {
+  const el = document.querySelector('#disconnectMessage');
+  if (!el) return;
+  el.className = `disconnect-message ${type}`;
+  el.textContent = text;
+}
+
 function showDisconnectedOverlay() {
   if (!ACTIVE_SESSION_ID) return;
 
   const old = document.querySelector('#remoteDisconnectBox');
   if (old) return;
 
+  const canReconnect = ACTIVE_ROLE === 'viewer';
+  const savedCode = ACTIVE_TARGET_CODE || LAST_TARGET_CODE;
+
   const box = document.createElement('div');
   box.id = 'remoteDisconnectBox';
   box.className = 'remote-disconnect-box';
+
   box.innerHTML = `
     <div>
       <h2>Bağlantı kəsildi</h2>
       <p>Qarşı tərəfin internet bağlantısı kəsilmiş, proqram bağlanmış və ya ekran paylaşımı dayandırılmış ola bilər.</p>
-      <div class="disconnect-actions">
-        <button id="retryRemoteBtn">Yenidən qoşul</button>
+
+      <div id="disconnectMessage" class="disconnect-message info">
+        ${canReconnect ? 'Yenidən qoşulmaq üçün sorğu göndərə bilərsiniz.' : 'Bağlantını bağlayıb ana ekrana qayıda bilərsiniz.'}
+      </div>
+
+      <div class="disconnect-actions ${canReconnect ? '' : 'single'}">
+        ${canReconnect ? `<button id="retryRemoteBtn">Yenidən qoşul</button>` : ''}
         <button id="closeDisconnectedBtn">Bağla</button>
       </div>
     </div>
@@ -1285,16 +1322,25 @@ function showDisconnectedOverlay() {
 
   document.body.appendChild(box);
 
-  document.querySelector('#closeDisconnectedBtn').onclick = () => closeRemoteSession(false);
-
-  document.querySelector('#retryRemoteBtn').onclick = async () => {
-    const code = ACTIVE_TARGET_CODE;
+  document.querySelector('#closeDisconnectedBtn').onclick = () => {
     closeRemoteSession(false);
-    if (code) {
-      document.querySelector('#targetCode').value = code;
-      await connectByCode();
-    }
   };
+
+  if (canReconnect) {
+    document.querySelector('#retryRemoteBtn').onclick = async () => {
+      if (!savedCode) {
+        setDisconnectMessage('Qoşulacaq cihaz kodu tapılmadı.', 'error');
+        return;
+      }
+
+      document.querySelector('#targetCode').value = savedCode;
+      setDisconnectMessage('Yenidən qoşulma sorğusu göndərilir...', 'info');
+
+      await connectByCode();
+
+      setDisconnectMessage('Sorğu göndərildi. Qarşı tərəfin cavabı gözlənilir.', 'success');
+    };
+  }
 }
 
   /*==============================================================================================================================*/
