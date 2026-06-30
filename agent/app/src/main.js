@@ -557,23 +557,7 @@ async function connectByCode() {
     return false;
   }
 
-  const { data: targetDevice } = await supabase
-    .from('devices')
-    .select('is_online,last_seen')
-    .eq('user_id', target.id)
-    .eq('platform', 'windows')
-    .maybeSingle();
-  
-  const lastSeenMs = targetDevice?.last_seen
-    ? Date.now() - new Date(targetDevice.last_seen).getTime()
-    : Infinity;
-  
-  const reallyOnline =
-    ONLINE_IDS.has(target.id) &&
-    targetDevice?.is_online === true &&
-    lastSeenMs < 25000;
-  
-  if (!reallyOnline) {
+  if (!ONLINE_IDS.has(target.id)) {
     const msg = `${fullName(target)} hazırda offline-dır. Sorğu göndərilə bilməz.`;
     setConnectMessage(msg, 'error');
     setDisconnectMessage(msg, 'error');
