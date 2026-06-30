@@ -29,6 +29,7 @@ let ACTIVE_ROLE = null; // viewer | host
 let LAST_TARGET_CODE = null;
 let INPUT_DC = null;
 let LAST_REMOTE_INPUT_AT = 0;
+let ACTIVE_STREAM = null;
 
 const RTC_CONFIG = {
   iceServers: [
@@ -521,17 +522,18 @@ function showDashboard() {
   document.querySelector('#deviceCode').textContent = CURRENT_PROFILE.device_code;
 }
 
+
 async function connectByCode() {
   const code = document.querySelector('#targetCode').value.trim();
 
   if (!navigator.onLine) {
     setConnectMessage('İnternet bağlantınız kəsilib. Sorğu göndərilə bilməz.', 'error');
-    return;
+    return false;
   }
 
   if (!/^\d{3} \d{3} \d{3}$/.test(code)) {
     setConnectMessage('9 rəqəmli ADSEA Desk kodunu düzgün daxil edin.', 'error');
-    return;
+    return false;
   }
 
   await loadProfiles();
@@ -540,44 +542,45 @@ async function connectByCode() {
 
   if (!target) {
     setConnectMessage('Bu kodla aktiv əməkdaş tapılmadı.', 'error');
-    return;
+    return false;
   }
 
   if (target.id === CURRENT_PROFILE.id) {
     setConnectMessage('Öz kompüterinizə qoşulma sorğusu göndərilə bilməz.', 'error');
-    return;
+    return false;
   }
 
   if (!ONLINE_IDS.has(target.id)) {
     const msg = `${fullName(target)} hazırda offline-dır. Sorğu göndərilə bilməz.`;
     setConnectMessage(msg, 'error');
     setDisconnectMessage(msg, 'error');
-    return;
+    return false;
   }
 
   const now = new Date().toISOString();
 
-  const { data: history, error: historyError } = await supabase.from('connection_history').insert({
-    operator_id: CURRENT_PROFILE.id,
-    operator_name: fullName(CURRENT_PROFILE),
-    operator_device_code: CURRENT_PROFILE.device_code,
-    target_user_id: target.id,
-    target_device_code: target.device_code,
-    target_employee_name: fullName(target),
-    target_details: profileLine(target),
-    target_region: target.region,
-    target_office_name: target.office_name,
-    target_department: target.department,
-    target_role_title: target.role_title,
-    started_at: now,
-    connected_at: now,
-    status: 'requested',
-    response_status: 'pending'
-  }).select().single();
+  const { data: history, error: historyError } =
+    await supabase.from('connection_history').insert({
+      operator_id: CURRENT_PROFILE.id,
+      operator_name: fullName(CURRENT_PROFILE),
+      operator_device_code: CURRENT_PROFILE.device_code,
+      target_user_id: target.id,
+      target_device_code: target.device_code,
+      target_employee_name: fullName(target),
+      target_details: profileLine(target),
+      target_region: target.region,
+      target_office_name: target.office_name,
+      target_department: target.department,
+      target_role_title: target.role_title,
+      started_at: now,
+      connected_at: now,
+      status: 'requested',
+      response_status: 'pending'
+    }).select().single();
 
   if (historyError) {
     setConnectMessage('Bağlantı jurnalı yazılmadı.', 'error');
-    return;
+    return false;
   }
 
   const { error } = await supabase.from('signals').insert({
@@ -602,14 +605,17 @@ async function connectByCode() {
 
   if (error) {
     setConnectMessage('Qoşulma sorğusu göndərilmədi.', 'error');
-    return;
+    return false;
   }
 
   const sentMsg = `${fullName(target)} üçün qoşulma sorğusu göndərildi.`;
   setConnectMessage(sentMsg, 'success');
   setDisconnectMessage(sentMsg, 'success');
-    
+
+  return true;
 }
+
+
 
 function showRequest(signal, p) {
   document.querySelector('#modalRoot').innerHTML = `
@@ -856,6 +862,8 @@ async function startHostScreenShare(requestPayload) {
       },
       audio: false
     });
+
+    ACTIVE_STREAM = stream;
     /*===========================================================*/
 
     
@@ -898,6 +906,10 @@ async function startHostScreenShare(requestPayload) {
     });
 
     setConnectMessage('Ekran paylaşımı aktivdir.', 'success');
+
+    setTimeout(() => {
+      invoke('minimize_app_window').catch(() => {});
+    }, 700);
 
     stream.getVideoTracks()[0].onended = () => {
       closeRemoteSession();
@@ -1060,6 +1072,13 @@ async function closeRemoteSession(sendNotice = true) {
     });
   }
 
+  if (ACTIVE_STREAM) {
+    ACTIVE_STREAM.getTracks().forEach(t => {
+      try { t.stop(); } catch {}
+    });
+    ACTIVE_STREAM = null;
+  }
+  
   if (ACTIVE_PC) {
     ACTIVE_PC.close();
     ACTIVE_PC = null;
@@ -1336,9 +1355,11 @@ function showDisconnectedOverlay() {
       document.querySelector('#targetCode').value = savedCode;
       setDisconnectMessage('Yenidən qoşulma sorğusu göndərilir...', 'info');
 
-      await connectByCode();
-
-      setDisconnectMessage('Sorğu göndərildi. Qarşı tərəfin cavabı gözlənilir.', 'success');
+      const ok = await connectByCode();
+      
+      if (ok) {
+        setDisconnectMessage('Sorğu göndərildi. Qarşı tərəfin cavabı gözlənilir.', 'success');
+      }
     };
   }
 }
