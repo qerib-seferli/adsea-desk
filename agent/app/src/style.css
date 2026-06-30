@@ -1073,5 +1073,31 @@ summary span{
   color:#fecaca;
 }
 /*===================================================================*/
+.disconnect-message{
+  margin-top:14px;
+  padding:11px 13px;
+  border-radius:14px;
+  font-size:13px;
+  line-height:1.35;
+  background:rgba(14,165,233,.10);
+  border:1px solid rgba(14,165,233,.25);
+  color:#bae6fd;
+}
+
+.disconnect-message.error{
+  background:rgba(239,68,68,.11);
+  border-color:rgba(239,68,68,.35);
+  color:#fecaca;
+}
+
+.disconnect-message.success{
+  background:rgba(34,197,94,.11);
+  border-color:rgba(34,197,94,.35);
+  color:#bbf7d0;
+}
+
+.disconnect-actions.single{
+  grid-template-columns:1fr !important;
+}
 /*===================================================================*/
 /*===================================================================*/
