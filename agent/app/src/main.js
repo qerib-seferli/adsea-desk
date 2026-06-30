@@ -30,6 +30,7 @@ let LAST_TARGET_CODE = null;
 let INPUT_DC = null;
 let LAST_REMOTE_INPUT_AT = 0;
 let ACTIVE_STREAM = null;
+let RECONNECTING = false;
 
 const RTC_CONFIG = {
   iceServers: [
@@ -344,6 +345,12 @@ async function handleSignal(signal) {
   const p = parsePayload(signal.payload);
 
   if (signal.type === 'connection-request') {
+    removeDisconnectedOverlay();
+  
+    try {
+      await invoke('show_app_window');
+    } catch {}
+  
     await playRequestAlert();
     showRequest(signal, p);
     return;
@@ -550,7 +557,23 @@ async function connectByCode() {
     return false;
   }
 
-  if (!ONLINE_IDS.has(target.id)) {
+  const { data: targetDevice } = await supabase
+    .from('devices')
+    .select('is_online,last_seen')
+    .eq('user_id', target.id)
+    .eq('platform', 'windows')
+    .maybeSingle();
+  
+  const lastSeenMs = targetDevice?.last_seen
+    ? Date.now() - new Date(targetDevice.last_seen).getTime()
+    : Infinity;
+  
+  const reallyOnline =
+    ONLINE_IDS.has(target.id) &&
+    targetDevice?.is_online === true &&
+    lastSeenMs < 25000;
+  
+  if (!reallyOnline) {
     const msg = `${fullName(target)} hazırda offline-dır. Sorğu göndərilə bilməz.`;
     setConnectMessage(msg, 'error');
     setDisconnectMessage(msg, 'error');
@@ -815,17 +838,31 @@ async function createPeer(sessionId, targetCode, mode = 'viewer') {
     }
   };
 
+  
   pc.onconnectionstatechange = () => {
+    if (pc.connectionState === 'connected') {
+      RECONNECTING = false;
+      removeDisconnectedOverlay();
+      setConnectMessage('Bağlantı bərpa edildi.', 'success');
+    }
+  
     if (['disconnected', 'failed', 'closed'].includes(pc.connectionState)) {
       showDisconnectedOverlay();
     }
   };
-
+  
   pc.oniceconnectionstatechange = () => {
+    if (['connected', 'completed'].includes(pc.iceConnectionState)) {
+      RECONNECTING = false;
+      removeDisconnectedOverlay();
+      setConnectMessage('Bağlantı bərpa edildi.', 'success');
+    }
+  
     if (['disconnected', 'failed', 'closed'].includes(pc.iceConnectionState)) {
       showDisconnectedOverlay();
     }
   };
+  
 
   ACTIVE_PC = pc;
   ACTIVE_SESSION_ID = sessionId;
@@ -1088,6 +1125,7 @@ async function closeRemoteSession(sendNotice = true) {
   ACTIVE_TARGET_CODE = null;
   ACTIVE_ROLE = null;
   INPUT_DC = null;
+  RECONNECTING = false;
   removeDisconnectedOverlay();
 
   document.removeEventListener('keydown', sendKeyboardEvent);
@@ -1347,18 +1385,24 @@ function showDisconnectedOverlay() {
 
   if (canReconnect) {
     document.querySelector('#retryRemoteBtn').onclick = async () => {
+      if (RECONNECTING) return;
+    
       if (!savedCode) {
         setDisconnectMessage('Qoşulacaq cihaz kodu tapılmadı.', 'error');
         return;
       }
-
+    
+      RECONNECTING = true;
+    
       document.querySelector('#targetCode').value = savedCode;
       setDisconnectMessage('Yenidən qoşulma sorğusu göndərilir...', 'info');
-
+    
       const ok = await connectByCode();
-      
+    
       if (ok) {
         setDisconnectMessage('Sorğu göndərildi. Qarşı tərəfin cavabı gözlənilir.', 'success');
+      } else {
+        RECONNECTING = false;
       }
     };
   }
