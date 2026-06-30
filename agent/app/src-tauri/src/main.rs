@@ -216,9 +216,19 @@ fn minimize_app_window(window: tauri::Window) -> Result<(), String> {
 }
 
 
+#[tauri::command]
+fn show_app_window(window: tauri::Window) -> Result<(), String> {
+    window.unminimize().map_err(|e| e.to_string())?;
+    window.show().map_err(|e| e.to_string())?;
+    window.set_focus().map_err(|e| e.to_string())?;
+    Ok(())
+}
+
+
+
 fn main() {
     tauri::Builder::default()
-        .invoke_handler(tauri::generate_handler![remote_input, minimize_app_window])
+        .invoke_handler(tauri::generate_handler![remote_input, minimize_app_window, show_app_window])
         .run(tauri::generate_context!())
         .expect("error while running ADSEA Desk");
 }
