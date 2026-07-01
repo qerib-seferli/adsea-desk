@@ -905,12 +905,12 @@ async function startHostScreenShare(requestPayload) {
 
     
     /*===========================================================*/
-    /*ekran paylaşımı keyfiyyəti*/
+    /*ekran paylaşımı keyfiyyəti    start 45 FPS maksimum 60 FPS*/
     const stream = await navigator.mediaDevices.getDisplayMedia({
       video: {
         width: { ideal: 1920, max: 1920 },
         height: { ideal: 1080, max: 1080 },
-        frameRate: { ideal: 30, max: 30 }
+        frameRate: { ideal: 45, max: 60 }
       },
       audio: false
     });
@@ -930,8 +930,8 @@ async function startHostScreenShare(requestPayload) {
     
       const params = sender.getParameters();
       params.encodings = [{
-        maxBitrate: 4500000,
-        maxFramerate: 30,
+        maxBitrate: 8500000,
+        maxFramerate: 45,
         priority: 'high'
       }];
     
@@ -1214,7 +1214,7 @@ function getVideoPoint(e) {
 
 async function sendMouseMove(e) {
   const now = performance.now();
-  if (now - LAST_REMOTE_INPUT_AT < 16) return;
+  if (now - LAST_REMOTE_INPUT_AT < 4) return;
   LAST_REMOTE_INPUT_AT = now;
 
   const point = getVideoPoint(e);
