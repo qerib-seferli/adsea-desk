@@ -32,12 +32,37 @@ let LAST_REMOTE_INPUT_AT = 0;
 let ACTIVE_STREAM = null;
 let RECONNECTING = false;
 
-const RTC_CONFIG = {
+let RTC_CONFIG = {
   iceServers: [
     { urls: 'stun:stun.l.google.com:19302' },
     { urls: 'stun:stun1.l.google.com:19302' }
-  ]
+  ],
+  iceTransportPolicy: 'all'
 };
+
+/*===================================================================================================================*/
+
+async function loadTurnConfig() {
+  try {
+    const { data, error } = await supabase.functions.invoke('get-turn-config');
+
+    if (error || !data?.iceServers?.length) {
+      console.warn('TURN config alınmadı, STUN ilə davam edir.', error);
+      return;
+    }
+
+    RTC_CONFIG = {
+      iceServers: data.iceServers,
+      iceTransportPolicy: data.iceTransportPolicy || 'all'
+    };
+
+    console.log('TURN config aktivdir.');
+  } catch (err) {
+    console.warn('TURN config xətası:', err);
+  }
+}
+
+/*===================================================================================================================*/
 
 document.querySelector('#app').innerHTML = `
 <main class="agent-page login-mode" id="agentPage">
@@ -714,6 +739,7 @@ async function login(session) {
     return;
   }
 
+  await loadTurnConfig();      /*TURN config*/
   await loadProfiles();
   showDashboard();
   renderEmployeeTree();
