@@ -908,13 +908,14 @@ async function startHostScreenShare(requestPayload) {
     /*ekran paylaşımı keyfiyyəti*/
     const stream = await navigator.mediaDevices.getDisplayMedia({
       video: {
-        width: { ideal: 1280, max: 1280 },
-        height: { ideal: 720, max: 720 },
-        frameRate: { ideal: 20, max: 24 }
+        width: { ideal: 1920, max: 1920 },
+        height: { ideal: 1080, max: 1080 },
+        frameRate: { ideal: 30, max: 30 }
       },
       audio: false
     });
 
+    
     ACTIVE_STREAM = stream;
     /*===========================================================*/
 
@@ -928,11 +929,11 @@ async function startHostScreenShare(requestPayload) {
       const sender = pc.addTrack(track, stream);
     
       const params = sender.getParameters();
-        params.encodings = [{
-          maxBitrate: 2200000,
-          maxFramerate: 24,
-          priority: 'high'
-        }];
+      params.encodings = [{
+        maxBitrate: 4500000,
+        maxFramerate: 30,
+        priority: 'high'
+      }];
     
       sender.setParameters(params).catch(() => {});
     });
