@@ -53,7 +53,7 @@ async function loadTurnConfig() {
 
     RTC_CONFIG = {
       iceServers: data.iceServers,
-      iceTransportPolicy: data.iceTransportPolicy || 'all'
+      iceTransportPolicy: 'all'
     };
 
     console.log('TURN config aktivdir.');
@@ -286,7 +286,7 @@ async function loadHistory() {
     .or(`operator_id.eq.${CURRENT_PROFILE.id},target_user_id.eq.${CURRENT_PROFILE.id}`)
     .eq('response_status', 'accepted')
     .order('started_at', { ascending: false })
-    .limit(120);
+    .limit(500);
 
   HISTORY_ROWS = data || [];
   renderHistory();
@@ -478,24 +478,28 @@ function renderEmployeeTree() {
 }
 
 
+
 function renderHistory() {
   const root = document.querySelector('#historyGrid');
   if (!root) return;
 
-  const q = HISTORY_SEARCH.toLowerCase().trim();
-  const seen = new Set();
+  const latestByComputer = new Map();
 
-  const rows = HISTORY_ROWS.filter(h => {
+  for (const h of HISTORY_ROWS) {
     const otherIsTarget = h.operator_id === CURRENT_PROFILE.id;
     const otherId = otherIsTarget ? h.target_user_id : h.operator_id;
     const code = otherIsTarget ? h.target_device_code : h.operator_device_code;
-
-    if (!otherId && !code) return false;
     const uniqueKey = otherId || code;
 
-    if (seen.has(uniqueKey)) return false;
-    seen.add(uniqueKey);
+    if (!uniqueKey) continue;
+    if (!latestByComputer.has(uniqueKey)) {
+      latestByComputer.set(uniqueKey, h);
+    }
+  }
 
+  const q = HISTORY_SEARCH.toLowerCase().trim();
+
+  const rows = Array.from(latestByComputer.values()).filter(h => {
     const text = `
       ${h.operator_name || ''}
       ${h.operator_device_code || ''}
@@ -541,6 +545,7 @@ function renderHistory() {
     };
   });
 }
+
 
 
 function showDashboard() {
@@ -903,9 +908,9 @@ async function startHostScreenShare(requestPayload) {
     /*ekran paylaşımı keyfiyyəti*/
     const stream = await navigator.mediaDevices.getDisplayMedia({
       video: {
-        frameRate: { ideal: 45, max: 60 },
-        width: { ideal: 1920, max: 1920 },
-        height: { ideal: 1080, max: 1080 }
+        width: { ideal: 1280, max: 1280 },
+        height: { ideal: 720, max: 720 },
+        frameRate: { ideal: 20, max: 24 }
       },
       audio: false
     });
@@ -923,11 +928,11 @@ async function startHostScreenShare(requestPayload) {
       const sender = pc.addTrack(track, stream);
     
       const params = sender.getParameters();
-      params.encodings = [{
-        maxBitrate: 6500000,
-        maxFramerate: 45,
-        priority: 'high'
-      }];
+        params.encodings = [{
+          maxBitrate: 2200000,
+          maxFramerate: 24,
+          priority: 'high'
+        }];
     
       sender.setParameters(params).catch(() => {});
     });
